@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TradeVault — Forex Journal Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<!-- Firebase SDKs (Compat version for your existing code) -->
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-storage-compat.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #060b12;
+  --surface: #0c1220;
+  --card: #101827;
+  --border: #1a2540;
+  --accent: #f0b429;
+  --accent-dim: #7c5e10;
+  --green: #0fd68a;
+  --red: #f25c5c;
+  --muted: #4a5f80;
+  --text: #dde6f5;
+  --sub: #7a90b0;
+}
+body { background: var(--bg); font-family: 'Syne', sans-serif; color: var(--text); min-height: 100vh; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* AUTH SCREEN */
+#auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 60% 40%, #0d1f3c 0%, var(--bg) 70%);
+  padding: 20px;
+}
+.auth-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.auth-logo { font-size: 36px; margin-bottom: 8px; }
+.auth-title { font-size: 24px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+.auth-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 32px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.auth-divider span { flex: 1; height: 1px; background: var(--border); }
+.auth-divider p { font-size: 11px; color: var(--muted); }
+
+/* INPUTS */
+input, select, textarea {
+  font-family: 'Syne', sans-serif;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 12px 14px;
+  width: 100%;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent-dim); }
+textarea { resize: vertical; }
+select option { background: var(--card); }
+
+/* BUTTONS */
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 20px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary:disabled { opacity: 0.4; cursor: wait; }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--sub);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.btn-ghost:hover { border-color: var(--sub); }
+.btn-google {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+.btn-google:hover { border-color: var(--sub); }
+.btn-danger {
+  background: transparent;
+  border: 1px solid #f25c5c44;
+  color: var(--red);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+}
+
+/* APP LAYOUT */
+#app { display: none; }
+.header {
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 50;
+}
+.header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 58px;
+}
+.logo-mark { width: 30px; height: 30px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; color: #000; }
+.logo-text { font-weight: 800; font-size: 14px; letter-spacing: 2px; }
+.logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
+
+.tabs { border-bottom: 1px solid var(--border); padding: 0 20px; }
+.tabs-inner { max-width: 900px; margin: 0 auto; display: flex; }
+.tab-btn {
+  background: none; border: none;
+  color: var(--muted);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 13px 18px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.main { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+
+/* STAT CARDS */
+.stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  flex: 1;
+  min-width: 110px;
+}
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+.stat-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* TRADE CARDS */
+.trade-card {
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  transition: transform 0.15s;
+}
+.trade-card:hover { transform: translateY(-1px); }
+.trade-header {
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.trade-stripe { width: 4px; height: 38px; border-radius: 2px; flex-shrink: 0; }
+.trade-body { padding: 0 16px 16px; border-top: 1px solid var(--border); }
+.trade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+.field-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+.field-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.badge { font-size: 11px; padding: 2px 9px; border-radius: 20px; }
+.badge-buy { background: #0fd68a22; color: var(--green); }
+.badge-sell { background: #f25c5c22; color: var(--red); }
+
+/* CHART UPLOAD */
+.chart-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+.chart-upload-area:hover { border-color: var(--sub); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: #000000bb;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+.modal-title { font-size: 17px; font-weight: 700; letter-spacing: 1px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+
+/* AI REVIEW */
+.ai-review-box {
+  background: var(--surface);
+  border: 1px solid var(--accent-dim);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.75;
+  margin-top: 12px;
+}
+.ai-review-label { font-size: 10px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+
+/* STARS */
+.stars span { cursor: pointer; font-size: 20px; transition: color 0.1s; }
+
+/* EQUITY CHART */
+.chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 18px; }
+.chart-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; }
+
+/* ANALYSIS */
+.analysis-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+.analysis-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px; }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bar-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 72px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+
+/* LOADING */
+.loading { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }
+.empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+.pnl-preview { background: var(--surface); border-radius: 10px; padding: 14px; display: flex; gap: 24px; margin-top: 14px; }
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.filter-row select { width: auto; }
+.count-badge { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; padding: 10px 4px; }
+
+.user-info { display: flex; align-items: center; gap: 8px; }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--accent); overflow: hidden; }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.signout-btn { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; font-family: 'Syne', sans-serif; letter-spacing: 1px; }
+.signout-btn:hover { color: var(--text); }
+
+.error-msg { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; }
+.success-msg { color: var(--green); font-size: 12px; margin-top: 8px; text-align: center; }
+
+.setup-banner {
+  background: linear-gradient(135deg, #0d1f3c, #101827);
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.setup-banner h3 { color: var(--accent); font-size: 13px; letter-spacing: 1px; margin-bottom: 8px; }
+.setup-banner p { font-size: 12px; color: var(--sub); line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">₿</div>
+    <div class="auth-title">TradeVault</div>
+    <div class="auth-sub">Forex Journal Pro</div>
+
+    <div id="auth-login" style="display:block">
+      <div class="form-field" style="margin-bottom:12px">
+        <input type="email" id="login-email" placeholder="Email address" />
+      </div>
+      <div class="form-field" style="margin-bottom:16px">
+        <input type="password" id="login-password" placeholder="Password" />
+      </div>
+      <button class="btn-primary" onclick="loginEmail()">SIGN IN</button>
+      <div id="login-error" class="error-msg"></div>
+
+      <div class="auth-divider"><span></span><p>or</p><span></span></div>
+
+      <button class="btn-google" onclick="loginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+
+      <div style="margin-top:20px;font-size:12px;color:var(--muted)">No account? <span style="color:var(--accent);cursor:pointer" onclick="toggleAuth()">Create one free</span></div>
+    </div>
+
+    <div id="auth-register" style="display:none">
+      <div class="form-field" style="margin-bottom:12px">
+        <input type="text" id="reg-name" placeholder="Your name" />
+      </div>
+      <div class="form-field" style="margin-bottom:12px">
+        <input type="email" id="reg-email" placeholder="Email address" />
+      </div>
+      <div class="form-field" style="margin-bottom:16px">
+        <input type="password" id="reg-password" placeholder="Password (min 6 chars)" />
+      </div>
+      <button class="btn-primary" onclick="registerEmail()">CREATE ACCOUNT</button>
+      <div id="reg-error" class="error-msg"></div>
+      <div id="reg-success" class="success-msg"></div>
+
+      <div style="margin-top:20px;font-size:12px;color:var(--muted)">Have account? <span style="color:var(--accent);cursor:pointer" onclick="toggleAuth()">Sign in</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <div class="header">
+    <div class="header-inner">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="logo-mark">₿</div>
+        <div>
+          <div class="logo-text">TradeVault</div>
+          <div class="logo-sub">Forex Journal Pro</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:11px" onclick="openModal()">+ LOG TRADE</button>
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <button class="signout-btn" onclick="signOut()">SIGN OUT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tabs-inner">
+      <button class="tab-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+      <button class="tab-btn" onclick="switchTab('trades',this)">Trades</button>
+      <button class="tab-btn" onclick="switchTab('analysis',this)">Analysis</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <div class="setup-banner" id="setup-banner" style="display:none">
+      <h3>⚙️ Firebase Setup Required</h3>
+      <p>To enable cross-device sync, enable Authentication (Email/Google) and Firestore in your Firebase Console.</p>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="tab-dashboard">
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val mono" id="stat-wr">—</div></div>
+        <div class="stat-card"><div class="stat-label">Total Pips</div><div class="stat-val mono" id="stat-pips">—</div></div>
+        <div class="stat-card"><div class="stat-label">Net P&L</div><div class="stat-val mono" id="stat-pnl">—</div></div>
+        <div class="stat-card"><div class="stat-label">Trades</div><div class="stat-val mono" id="stat-count">0</div><div class="stat-sub" id="stat-wl"></div></div>
+        <div class="stat-card"><div class="stat-label">Avg R:R</div><div class="stat-val mono" id="stat-rr">—</div></div>
+        <div class="stat-card"><div class="stat-label">Profit Factor</div><div class="stat-val mono" id="stat-pf">—</div></div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Equity Curve</div>
+        <canvas id="equity-chart" height="140"></canvas>
+      </div>
+
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px">Recent Trades</div>
+      <div id="recent-trades"></div>
+    </div>
+
+    <!-- TRADES TAB -->
+    <div id="tab-trades" style="display:none">
+      <div class="filter-row">
+        <select id="filter-pair" onchange="renderTrades()" style="width:auto">
+          <option value="All">All Pairs</option>
+        </select>
+        <select id="filter-session" onchange="renderTrades()" style="width:auto">
+          <option value="All">All Sessions</option>
+          <option>London</option><option>New York</option><option>Asian</option><option>London/NY Overlap</option>
+        </select>
+        <div class="count-badge" id="trade-count">0 trades</div>
+      </div>
+      <div id="all-trades"></div>
+    </div>
+
+    <!-- ANALYSIS TAB -->
+    <div id="tab-analysis" style="display:none">
+      <div class="analysis-card">
+        <div class="analysis-title">Performance by Pair</div>
+        <div id="pair-analysis"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="analysis-card">
+          <div class="analysis-title">Emotion vs Win Rate</div>
+          <div id="emotion-analysis"></div>
+        </div>
+        <div class="analysis-card">
+          <div class="analysis-title">Mistake Tracker</div>
+          <div id="mistake-analysis"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD TRADE MODAL -->
+<div class="modal-overlay" id="trade-modal" style="display:none" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px">
+      <div class="modal-title">Log Trade</div>
+      <button onclick="closeModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field"><label class="field-label">Date</label><input type="date" id="f-date" /></div>
+      <div class="form-field"><label class="field-label">Pair</label>
+        <select id="f-pair">
+          <option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>XAUUSD</option>
+          <option>GBPJPY</option><option>USDCAD</option><option>AUDUSD</option><option>NZDUSD</option>
+          <option>USDCHF</option><option>EURJPY</option><option>EURGBP</option><option>BTCUSD</option>
+        </select>
+      </div>
+      <div class="form-field"><label class="field-label">Direction</label>
+        <select id="f-dir"><option>Buy</option><option>Sell</option></select>
+      </div>
+      <div class="form-field"><label class="field-label">Timeframe</label>
+        <select id="f-tf"><option>M1</option><option>M5</option><option>M15</option><option>M30</option><option selected>H1</option><option>H4</option><option>D1</option><option>W1</option></select>
+      </div>
+      <div class="form-field"><label class="field-label">Entry Price</label><input type="number" step="0.00001" id="f-entry" placeholder="1.08500" oninput="calcPreview()" /></div>
+      <div class="form-field"><label class="field-label">Exit Price</label><input type="number" step="0.00001" id="f-exit" placeholder="1.09000" oninput="calcPreview()" /></div>
+      <div class="form-field"><label class="field-label">Stop Loss</label><input type="number" step="0.00001" id="f-sl" /></div>
+      <div class="form-field"><label class="field-label">Take Profit</label><input type="number" step="0.00001" id="f-tp" /></div>
+      <div class="form-field"><label class="field-label">Lot Size</label><input type="number" step="0.01" id="f-lot" placeholder="0.10" oninput="calcPreview()" /></div>
+      <div class="form-field"><label class="field-label">Session</label>
+        <select id="f-session"><option>London</option><option>New York</option><option>Asian</option><option>London/NY Overlap</option></select>
+      </div>
+      <div class="form-field"><label class="field-label">Strategy</label>
+        <select id="f-strategy">
+          <option>BOS</option><option>Order Block</option><option>FVG</option><option>Trend Follow</option>
+          <option>Breakout</option><option>Scalp</option><option>Supply/Demand</option><option>ICT</option><option>Sniper Entry</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-field"><label class="field-label">Emotion</label>
+        <select id="f-emotion">
+          <option>Calm</option><option>Confident</option><option>Nervous</option><option>Revenge</option>
+          <option>FOMO</option><option>Bored</option><option>Excited</option><option>Fearful</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-field" style="margin-top:14px"><label class="field-label">Mistake Made</label>
+      <select id="f-mistake">
+        <option>None</option><option>Moved SL</option><option>Early Exit</option><option>Late Entry</option>
+        <option>Overtraded</option><option>Ignored Plan</option><option>Chased Price</option><option>No Confirmation</option>
+      </select>
+    </div>
+
+    <div style="margin-top:14px"><label class="field-label">Setup Rating</label>
+      <div class="stars" id="star-rating">
+        <span onclick="setStar(1)">★</span>
+        <span onclick="setStar(2)">★</span>
+        <span onclick="setStar(3)">★</span>
+        <span onclick="setStar(4)">★</span>
+        <span onclick="setStar(5)">★</span>
+      </div>
+    </div>
+
+    <div class="form-field" style="margin-top:14px">
+      <label class="field-label">Notes</label>
+      <textarea id="f-notes" rows="3" placeholder="What did you see? What were your confluences?"></textarea>
+    </div>
+
+    <div style="margin-top:14px">
+      <label class="field-label">Chart Screenshot</label>
+      <div class="chart-upload-area" onclick="document.getElementById('f-chart').click()" id="chart-upload-label">
+        📸 Tap to upload chart image (before/after)
+      </div>
+      <input type="file" id="f-chart" accept="image/*" style="display:none" onchange="previewChart(event)" />
+    </div>
+
+    <div id="pnl-preview" style="display:none" class="pnl-preview">
+      <div><div class="field-label">Result</div><div class="mono" id="prev-pips" style="font-size:16px"></div></div>
+      <div><div class="field-label">P&L</div><div class="mono" id="prev-dollar" style="font-size:16px"></div></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-primary" onclick="saveTrade()" id="save-btn">SAVE TRADE</button>
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+    <div id="save-error" class="error-msg"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// FIREBASE CONFIGURATION (Using your provided config)
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+  authDomain: "web-app-a36aa.firebaseapp.com",
+  projectId: "web-app-a36aa",
+  storageBucket: "web-app-a36aa.firebasestorage.app",
+  messagingSenderId: "873638679873",
+  appId: "1:873638679873:web:490942c8492e947b09bdc0",
+  measurementId: "G-P5F8PZES9P"
+};
+
+// Initialize Firebase
+let db = null, auth = null, storage = null;
+let currentUser = null;
+let useFirebase = false;
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  storage = firebase.storage();
+  useFirebase = true;
+  document.getElementById("setup-banner").style.display = "none";
+} catch(e) {
+  console.warn("Firebase init error:", e);
+  useFirebase = false;
+  document.getElementById("setup-banner").style.display = "block";
+}
+
+// ============================================================
+// GLOBAL VARIABLES
+// ============================================================
+let trades = [];
+let starVal = 3;
+let chartImageBase64 = null;
+let equityChartInstance = null;
+
+const PAIRS = ["EURUSD","GBPUSD","USDJPY","XAUUSD","GBPJPY","USDCAD","AUDUSD","NZDUSD","USDCHF","EURJPY","EURGBP","BTCUSD"];
+const EMOTIONS = ["Calm","Confident","Nervous","Revenge","FOMO","Bored","Excited","Fearful"];
+const MISTAKES = ["None","Moved SL","Early Exit","Late Entry","Overtraded","Ignored Plan","Chased Price","No Confirmation"];
+
+// ============================================================
+// AUTH FUNCTIONS
+// ============================================================
+function toggleAuth() {
+  const login = document.getElementById("auth-login");
+  const reg = document.getElementById("auth-register");
+  login.style.display = login.style.display === "none" ? "block" : "none";
+  reg.style.display = reg.style.display === "none" ? "block" : "none";
+}
+
+async function loginEmail() {
+  if (!useFirebase) { alert("Firebase not configured. Using localStorage mode."); showApp(null); loadFromLocalStorage(); return; }
+  const email = document.getElementById("login-email").value;
+  const pass = document.getElementById("login-password").value;
+  const err = document.getElementById("login-error");
+  err.textContent = "";
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) { err.textContent = e.message; }
+}
+
+async function loginGoogle() {
+  if (!useFirebase) { alert("Firebase not configured. Using localStorage mode."); showApp(null); loadFromLocalStorage(); return; }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch(e) { document.getElementById("login-error").textContent = e.message; }
+}
+
+async function registerEmail() {
+  if (!useFirebase) { alert("Firebase not configured. Using localStorage mode."); return; }
+  const name = document.getElementById("reg-name").value;
+  const email = document.getElementById("reg-email").value;
+  const pass = document.getElementById("reg-password").value;
+  const err = document.getElementById("reg-error");
+  const suc = document.getElementById("reg-success");
+  err.textContent = ""; suc.textContent = "";
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await cred.user.updateProfile({ displayName: name });
+    suc.textContent = "Account created! Signing you in...";
+  } catch(e) { err.textContent = e.message; }
+}
+
+function signOut() {
+  if (useFirebase && auth) { auth.signOut(); }
+  else { showAuth(); }
+}
+
+function showAuth() {
+  document.getElementById("auth-screen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+}
+
+function showApp(user) {
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  if (user) {
+    currentUser = user;
+    const avatar = document.getElementById("user-avatar");
+    if (user.photoURL) { avatar.innerHTML = `<img src="${user.photoURL}" />`; }
+    else { avatar.textContent = (user.displayName || user.email || "?")[0].toUpperCase(); }
+  }
+}
+
+// ============================================================
+// DATA FUNCTIONS
+// ============================================================
+function loadFromLocalStorage() {
+  const saved = localStorage.getItem("tradevault_trades");
+  trades = saved ? JSON.parse(saved) : getSampleTrades();
+  refreshAll();
+}
+
+function saveToLocalStorage() {
+  localStorage.setItem("tradevault_trades", JSON.stringify(trades));
+}
+
+function loadTradesFromFirebase() {
+  if (!useFirebase || !db || !currentUser) return;
+  db.collection("users").doc(currentUser.uid).collection("trades")
+    .orderBy("timestamp", "desc")
+    .onSnapshot(snap => {
+      trades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      refreshAll();
+    });
+}
+
+async function addTradeToFirebase(trade) {
+  if (!useFirebase || !db || !currentUser) return;
+  await db.collection("users").doc(currentUser.uid).collection("trades").add({
+    ...trade,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function deleteTradeFromFirebase(id) {
+  if (!useFirebase || !db || !currentUser) return;
+  await db.collection("users").doc(currentUser.uid).collection("trades").doc(id).delete();
+}
+
+function getSampleTrades() {
+  return [
+    { id: "s1", date: "2026-04-08", pair: "XAUUSD", direction: "Buy", entry: "2310.50", exit: "2328.00", sl: "2302.00", tp: "2335.00", lot: "0.10", timeframe: "H4", session: "London", strategy: "Order Block", emotion: "Calm", mistake: "None", notes: "Clean OB retest at 4H, strong confluence.", rating: 5, pnl: 1750, dollar: 175, chartImage: null },
+    { id: "s2", date: "2026-04-09", pair: "EURUSD", direction: "Sell", entry: "1.09450", exit: "1.09200", sl: "1.09600", tp: "1.09100", lot: "0.20", timeframe: "H1", session: "New York", strategy: "BOS", emotion: "Confident", mistake: "Early Exit", notes: "BOS confirmed but exited before TP.", rating: 3, pnl: 25, dollar: 50, chartImage: null },
+    { id: "s3", date: "2026-04-10", pair: "GBPJPY", direction: "Buy", entry: "191.200", exit: "190.800", sl: "190.500", tp: "192.200", lot: "0.10", timeframe: "M15", session: "London", strategy: "Trend Follow", emotion: "FOMO", mistake: "Chased Price", notes: "Entered too late, chased the candle.", rating: 1, pnl: -40, dollar: -40, chartImage: null }
+  ];
+}
+
+// ============================================================
+// STATS FUNCTIONS
+// ============================================================
+function calcStats() {
+  const wins = trades.filter(t => t.pnl >= 0);
+  const losses = trades.filter(t => t.pnl < 0);
+  const wr = trades.length ? Math.round((wins.length / trades.length) * 100) : 0;
+  const totalPips = trades.reduce((s,t) => s + (t.pnl||0), 0);
+  const totalDollar = trades.reduce((s,t) => s + (t.dollar||0), 0);
+  const avgWin = wins.length ? wins.reduce((s,t) => s + Math.abs(t.pnl),0) / wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((s,t) => s + Math.abs(t.pnl),0) / losses.length : 1;
+  const rr = avgLoss ? (avgWin / avgLoss).toFixed(2) : "—";
+  const grossWin = wins.reduce((s,t)=>s+Math.abs(t.dollar),0);
+  const grossLoss = losses.reduce((s,t)=>s+Math.abs(t.dollar),0);
+  const pf = grossLoss ? (grossWin / grossLoss).toFixed(2) : "—";
+  return { wr, totalPips, totalDollar, wins, losses, rr, pf };
+}
+
+function refreshAll() {
+  updateStats();
+  renderEquityChart();
+  renderRecentTrades();
+  renderTrades();
+  renderAnalysis();
+  updatePairFilter();
+}
+
+function updateStats() {
+  const { wr, totalPips, totalDollar, wins, losses, rr, pf } = calcStats();
+  document.getElementById("stat-wr").style.color = wr >= 50 ? "var(--green)" : "var(--red)";
+  document.getElementById("stat-wr").textContent = `${wr}%`;
+  document.getElementById("stat-pips").style.color = totalPips >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("stat-pips").textContent = `${totalPips > 0 ? "+" : ""}${totalPips}`;
+  document.getElementById("stat-pnl").style.color = totalDollar >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("stat-pnl").textContent = `$${totalDollar}`;
+  document.getElementById("stat-count").textContent = trades.length;
+  document.getElementById("stat-wl").textContent = `${wins.length}W / ${losses.length}L`;
+  document.getElementById("stat-rr").textContent = rr;
+  document.getElementById("stat-pf").style.color = parseFloat(pf) >= 1 ? "var(--green)" : "var(--red)";
+  document.getElementById("stat-pf").textContent = pf;
+}
+
+function renderEquityChart() {
+  const sorted = [...trades].reverse();
+  let equity = 0;
+  const data = sorted.map(t => { equity += (t.dollar||0); return Math.round(equity*100)/100; });
+  const labels = sorted.map((_,i) => i+1);
+  const isPos = equity >= 0;
+  const ctx = document.getElementById("equity-chart").getContext("2d");
+  if (equityChartInstance) equityChartInstance.destroy();
+  equityChartInstance = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [{ data, borderColor: isPos ? "#0fd68a" : "#f25c5c", backgroundColor: isPos ? "#0fd68a18" : "#f25c5c18", borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }] },
+    options: { responsive: true, plugins: { legend: { display: false }, tooltip: { backgroundColor: "#0c1220", borderColor: "#1a2540" } }, scales: { x: { display: false }, y: { display: false } } }
+  });
+}
+
+function tradeCardHTML(t) {
+  const win = (t.pnl||0) >= 0;
+  const stars = "★".repeat(t.rating||0) + "☆".repeat(5-(t.rating||0));
+  return `<div class="trade-card" style="border:1px solid ${win ? "#0fd68a33" : "#f25c5c33"}">
+    <div class="trade-header" onclick="toggleCard('tc-${t.id}')">
+      <div class="trade-stripe" style="background:${win ? "var(--green)" : "var(--red)"}"></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span class="mono" style="font-weight:600;font-size:15px">${t.pair}</span>
+          <span class="badge ${t.direction==="Buy"?"badge-buy":"badge-sell"}">${t.direction}</span>
+          <span style="font-size:11px;color:var(--muted)">${t.session}</span>
+          <span style="font-size:11px;color:var(--muted)">${t.date||""}</span>
+        </div>
+        <div style="display:flex;gap:14px">
+          <span class="mono" style="font-size:13px;color:${win?"var(--green)":"var(--red)"}">${win?"+":""}${t.pnl} pips</span>
+          <span class="mono" style="font-size:13px;color:${win?"var(--green)":"var(--red)"}">${win?"+":""}$${t.dollar}</span>
+          <span style="font-size:12px;color:var(--muted)">${t.strategy}</span>
+        </div>
+      </div>
+      <div style="color:var(--accent);font-size:12px;letter-spacing:1px">${stars}</div>
+      <span style="color:var(--muted);font-size:14px;margin-left:6px">▼</span>
+    </div>
+    <div class="trade-body" id="tc-${t.id}" style="display:none">
+      <div class="trade-grid">${[["Entry",t.entry],["Exit",t.exit],["SL",t.sl],["TP",t.tp],["Lot",t.lot],["TF",t.timeframe]].map(([l,v])=>`<div><div class="field-label">${l}</div><div class="field-val">${v||"—"}</div></div>`).join("")}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div><div class="field-label">Emotion</div><div style="font-size:13px">${t.emotion}</div></div>
+        <div><div class="field-label">Mistake</div><div style="font-size:13px;color:${t.mistake==="None"?"var(--green)":"var(--red)"}">${t.mistake}</div></div>
+      </div>
+      ${t.notes ? `<div style="margin-bottom:12px"><div class="field-label">Notes</div><div style="font-size:13px;color:var(--sub);line-height:1.65">${t.notes}</div></div>` : ""}
+      ${t.chartImage ? `<div style="margin-bottom:12px"><div class="field-label">Chart</div><img src="${t.chartImage}" style="width:100%;border-radius:8px;border:1px solid var(--border);max-height:260px;object-fit:cover" /></div>` : ""}
+      <div id="ai-area-${t.id}"><button onclick="getAIReview('${t.id}')" style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:10px 18px;font-family:Syne;font-weight:700;font-size:12px;cursor:pointer">🤖 AI Trade Review</button></div>
+      <button class="btn-danger" onclick="deleteTrade('${t.id}')" style="margin-top:10px">Delete Trade</button>
+    </div>
+  </div>`;
+}
+
+function toggleCard(id) { const el = document.getElementById(id); if(el) el.style.display = el.style.display === "none" ? "block" : "none"; }
+function renderRecentTrades() { document.getElementById("recent-trades").innerHTML = trades.slice(0,5).map(tradeCardHTML).join("") || '<div class="empty"><div class="empty-icon">📋</div>No trades yet.</div>'; }
+function renderTrades() {
+  const pair = document.getElementById("filter-pair")?.value || "All";
+  const session = document.getElementById("filter-session")?.value || "All";
+  const filtered = trades.filter(t => (pair === "All" || t.pair === pair) && (session === "All" || t.session === session));
+  document.getElementById("trade-count").textContent = `${filtered.length} trades`;
+  document.getElementById("all-trades").innerHTML = filtered.length ? filtered.map(tradeCardHTML).join("") : '<div class="empty"><div class="empty-icon">🔍</div>No trades match.</div>';
+}
+function updatePairFilter() {
+  const sel = document.getElementById("filter-pair");
+  if(!sel) return;
+  const used = [...new Set(trades.map(t=>t.pair))];
+  sel.innerHTML = '<option value="All">All Pairs</option>' + used.map(p=>`<option>${p}</option>`).join("");
+}
+function renderAnalysis() {
+  const pairData = PAIRS.map(p => { const pt = trades.filter(t => t.pair === p); if(!pt.length) return null; const wr = Math.round((pt.filter(t=>t.pnl>=0).length / pt.length) * 100); const pips = pt.reduce((s,t)=>s+(t.pnl||0),0); return { pair: p, trades: pt.length, wr, pips }; }).filter(Boolean).sort((a,b)=>b.trades-a.trades);
+  document.getElementById("pair-analysis").innerHTML = pairData.length ? pairData.map(p=>`<div class="bar-row"><div class="bar-label">${p.pair}</div><div class="bar-track"><div class="bar-fill" style="width:${p.wr}%;background:${p.wr>=50?"var(--green)":"var(--red)"}"></div></div><div class="mono" style="font-size:12px;color:var(--sub);width:36px">${p.wr}%</div><div class="mono" style="font-size:12px;color:${p.pips>=0?"var(--green)":"var(--red)"};width:56px">${p.pips>=0?"+":""}${p.pips}p</div><div style="font-size:11px;color:var(--muted);width:18px">${p.trades}</div></div>`).join("") : '<div style="color:var(--muted)">No data yet</div>';
+  document.getElementById("emotion-analysis").innerHTML = EMOTIONS.map(em => { const et = trades.filter(t=>t.emotion===em); if(!et.length) return ""; const wr = Math.round((et.filter(t=>t.pnl>=0).length/et.length)*100); return `<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px"><span style="color:var(--sub)">${em}</span><span class="mono" style="color:${wr>=50?"var(--green)":"var(--red)"}">${wr}% (${et.length})</span></div>`; }).join("") || '<div style="color:var(--muted)">No data</div>';
+  document.getElementById("mistake-analysis").innerHTML = MISTAKES.map(m => { const mt = trades.filter(t=>t.mistake===m); if(!mt.length) return ""; const cost = mt.reduce((s,t)=>s+(t.dollar||0),0); return `<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px"><span style="color:${m==="None"?"var(--green)":"var(--red)"}">${m}</span><span class="mono" style="color:var(--sub)">${mt.length}x | ${cost>=0?"+":""}$${cost}</span></div>`; }).join("") || '<div style="color:var(--muted)">No data</div>';
+}
+async function getAIReview(id) { const t = trades.find(x => String(x.id) === String(id)); if(!t) return; const area = document.getElementById(`ai-area-${id}`); area.innerHTML = `<button disabled style="background:var(--accent-dim);color:#000;border:none;border-radius:8px;padding:10px 18px;font-family:Syne;font-weight:700;font-size:12px;cursor:wait">⏳ Analyzing...</button>`; try { const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: [{ type: "text", text: `Review this trade: Pair ${t.pair}, Direction ${t.direction}, Entry ${t.entry}, Exit ${t.exit}, Result ${t.pnl} pips, P&L $${t.dollar}, Strategy ${t.strategy}, Emotion ${t.emotion}, Mistake ${t.mistake}, Rating ${t.rating}/5. Give 3-4 sentences of honest feedback.` }] }] }) }); const data = await res.json(); const text = data.content?.map(b=>b.text||"").join("") || "Could not generate review."; area.innerHTML = `<div class="ai-review-box"><div class="ai-review-label">🤖 AI Coach Feedback</div>${text}</div>`; } catch(e) { area.innerHTML = `<div style="color:var(--red);font-size:13px">Error generating review.</div>`; } }
+async function deleteTrade(id) { if(!confirm("Delete this trade?")) return; if(useFirebase && currentUser) await deleteTradeFromFirebase(id); else { trades = trades.filter(t => String(t.id) !== String(id)); saveToLocalStorage(); refreshAll(); } }
+function calcPnl(pair, dir, entry, exit, lot) { const e = parseFloat(entry), x = parseFloat(exit), l = parseFloat(lot); if(!e||!x||!l) return { pnl:0, dollar:0 }; let pips; if(pair.includes("JPY")||pair==="XAUUSD") pips = Math.round(((x - e) * (dir === "Buy" ? 1 : -1)) * 100); else pips = Math.round(((x - e) * (dir === "Buy" ? 1 : -1)) * 10000); const dollar = Math.round(pips * l * 10 * 100) / 100; return { pnl: pips, dollar }; }
+function calcPreview() { const pair = document.getElementById("f-pair").value, dir = document.getElementById("f-dir").value, entry = document.getElementById("f-entry").value, exit = document.getElementById("f-exit").value, lot = document.getElementById("f-lot").value; if(!entry||!exit||!lot) { document.getElementById("pnl-preview").style.display = "none"; return; } const { pnl, dollar } = calcPnl(pair, dir, entry, exit, lot); const win = pnl >= 0; document.getElementById("pnl-preview").style.display = "flex"; document.getElementById("prev-pips").style.color = win ? "var(--green)" : "var(--red)"; document.getElementById("prev-pips").textContent = `${win?"+":""}${pnl} pips`; document.getElementById("prev-dollar").style.color = win ? "var(--green)" : "var(--red)"; document.getElementById("prev-dollar").textContent = `${win?"+":""}$${dollar}`; }
+async function saveTrade() { const entry = document.getElementById("f-entry").value, exit = document.getElementById("f-exit").value; if(!entry||!exit) { document.getElementById("save-error").textContent = "Entry and exit prices required."; return; } const pair = document.getElementById("f-pair").value, dir = document.getElementById("f-dir").value, lot = document.getElementById("f-lot").value; const { pnl, dollar } = calcPnl(pair, dir, entry, exit, lot); const trade = { date: document.getElementById("f-date").value, pair, direction: dir, entry, exit, sl: document.getElementById("f-sl").value, tp: document.getElementById("f-tp").value, lot, timeframe: document.getElementById("f-tf").value, session: document.getElementById("f-session").value, strategy: document.getElementById("f-strategy").value, emotion: document.getElementById("f-emotion").value, mistake: document.getElementById("f-mistake").value, notes: document.getElementById("f-notes").value, rating: starVal, pnl, dollar, chartImage: chartImageBase64 }; const btn = document.getElementById("save-btn"); btn.disabled = true; btn.textContent = "Saving..."; if(useFirebase && currentUser) await addTradeToFirebase(trade); else { trade.id = Date.now(); trades.unshift(trade); saveToLocalStorage(); refreshAll(); } btn.disabled = false; btn.textContent = "SAVE TRADE"; closeModal(); }
+function openModal() { document.getElementById("trade-modal").style.display = "flex"; document.getElementById("f-date").value = new Date().toISOString().slice(0,10); document.getElementById("pnl-preview").style.display = "none"; document.getElementById("save-error").textContent = ""; chartImageBase64 = null; document.getElementById("chart-upload-label").innerHTML = "📸 Tap to upload chart image"; setStar(3); }
+function closeModal() { document.getElementById("trade-modal").style.display = "none"; }
+function closeModalOutside(e) { if(e.target === document.getElementById("trade-modal")) closeModal(); }
+function previewChart(e) { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = ev => { chartImageBase64 = ev.target.result; document.getElementById("chart-upload-label").innerHTML = `<img src="${ev.target.result}" style="max-height:150px;border-radius:6px;width:100%;object-fit:cover" />`; }; reader.readAsDataURL(file); }
+function setStar(n) { starVal = n; const stars = document.querySelectorAll("#star-rating span"); stars.forEach((s,i) => { s.style.color = i < n ? "var(--accent)" : "var(--border)"; }); }
+function switchTab(name, btn) { ["dashboard","trades","analysis"].forEach(t => { document.getElementById(`tab-${t}`).style.display = t === name ? "block" : "none"; }); document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
+
+// ============================================================
+// AUTH STATE LISTENER
+// ============================================================
+if (useFirebase && auth) {
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      showApp(user);
+      loadTradesFromFirebase();
+    } else {
+      showAuth();
+      loadFromLocalStorage();
+    }
+  });
+} else {
+  // No Firebase, use localStorage only
+  showApp(null);
+  loadFromLocalStorage();
+}
+</script>
+</body>
+</html>
