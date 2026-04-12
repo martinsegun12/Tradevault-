@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>TradeVault — Forex Journal Pro</title>
+<meta name="description" content="Professional forex trading journal with AI coaching. Track trades, analyze performance, improve your trading. 7-day free trial." />
+<meta name="theme-color" content="#0a0c10" />
+<link rel="manifest" href="manifest.json" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #060b12;
+  --surface: #0c1220;
+  --card: #101827;
+  --border: #1a2540;
+  --accent: #f0b429;
+  --accent-dim: #7c5e10;
+  --green: #0fd68a;
+  --red: #f25c5c;
+  --muted: #4a5f80;
+  --text: #dde6f5;
+  --sub: #7a90b0;
+}
+body { background: var(--bg); font-family: 'Syne', sans-serif; color: var(--text); min-height: 100vh; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+#auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 60% 40%, #0d1f3c 0%, var(--bg) 70%);
+  padding: 20px;
+}
+.auth-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.auth-logo { font-size: 36px; margin-bottom: 8px; }
+.auth-title { font-size: 24px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+.auth-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 32px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.auth-divider span { flex: 1; height: 1px; background: var(--border); }
+
+input, select, textarea {
+  font-family: 'Syne', sans-serif;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 12px 14px;
+  width: 100%;
+  font-size: 13px;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent-dim); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 20px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--sub);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-google {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.btn-danger {
+  background: transparent;
+  border: 1px solid #f25c5c44;
+  color: var(--red);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#app { display: none; }
+.header {
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 50;
+}
+.header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 58px;
+}
+.logo-mark { width: 30px; height: 30px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; color: #000; }
+.logo-text { font-weight: 800; font-size: 14px; letter-spacing: 2px; }
+.logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
+
+.tabs { border-bottom: 1px solid var(--border); padding: 0 20px; }
+.tabs-inner { max-width: 900px; margin: 0 auto; display: flex; }
+.tab-btn {
+  background: none; border: none;
+  color: var(--muted);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 13px 18px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.main { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+
+.stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  flex: 1;
+  min-width: 110px;
+}
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+.stat-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; }
+
+.trade-card {
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.trade-header {
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.trade-stripe { width: 4px; height: 38px; border-radius: 2px; flex-shrink: 0; }
+.trade-body { padding: 0 16px 16px; border-top: 1px solid var(--border); }
+.trade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+.field-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+.field-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.badge { font-size: 11px; padding: 2px 9px; border-radius: 20px; }
+.badge-buy { background: #0fd68a22; color: var(--green); }
+.badge-sell { background: #f25c5c22; color: var(--red); }
+
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: #000000bb;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+
+.chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 18px; }
+.chart-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; }
+
+.analysis-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+.analysis-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px; }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bar-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 72px; }
+.bar-track { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; }
+
+.empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+.pnl-preview { background: var(--surface); border-radius: 10px; padding: 14px; display: flex; gap: 24px; margin-top: 14px; }
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.count-badge { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+.user-info { display: flex; align-items: center; gap: 8px; }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--accent); }
+.signout-btn { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; }
+
+.error-msg { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; }
+.success-msg { color: var(--green); font-size: 12px; margin-top: 8px; text-align: center; }
+
+.ai-chat-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 150;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
+}
+.ai-chat-btn:hover { transform: scale(1.05); }
+.ai-chat-window {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 350px;
+  height: 500px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  display: none;
+  flex-direction: column;
+  z-index: 151;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.ai-chat-window.open { display: flex; }
+.ai-chat-header {
+  background: var(--accent);
+  color: #000;
+  padding: 14px 16px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ai-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-message {
+  background: var(--surface);
+  padding: 10px 14px;
+  border-radius: 16px;
+  max-width: 85%;
+  font-size: 13px;
+  line-height: 1.5;
+  align-self: flex-start;
+}
+.user-message {
+  background: var(--accent-dim);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 16px;
+  max-width: 85%;
+  font-size: 13px;
+  align-self: flex-end;
+}
+.ai-chat-input {
+  display: flex;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  gap: 8px;
+}
+.ai-chat-input input {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 25px;
+  color: var(--text);
+}
+.ai-chat-input button {
+  background: var(--accent);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+}
+.quick-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.quick-q {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quick-q:hover { background: var(--accent-dim); color: white; }
+
+.trial-banner {
+  background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+  color: #000;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.trial-banner span { font-weight: bold; }
+.trial-banner button {
+  background: #000;
+  color: var(--accent);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.app-footer {
+  max-width: 900px;
+  margin: 40px auto 20px;
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+.footer-payment { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.footer-payment strong { color: var(--accent); }
+.footer-whatsapp { font-size: 12px; color: var(--muted); margin-bottom: 15px; }
+.footer-copyright { font-size: 10px; color: var(--muted); margin-top: 15px; }
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">₿</div>
+    <div class="auth-title">TradeVault</div>
+    <div class="auth-sub">Forex Journal Pro</div>
+    <div id="auth-login">
+      <input type="email" id="login-email" placeholder="Email address" style="margin-bottom:12px" />
+      <input type="password" id="login-password" placeholder="Password" style="margin-bottom:16px" />
+      <button class="btn-primary" onclick="loginEmail()">SIGN IN</button>
+      <div id="login-error" class="error-msg"></div>
+      <div class="auth-divider"><span></span><p>or</p><span></span></div>
+      <button class="btn-google" onclick="loginGoogle()"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continue with Google</button>
+      <div style="margin-top:20px;font-size:12px;color:var(--muted)">No account? <span style="color:var(--accent);cursor:pointer" onclick="toggleAuth()">Create one free</span></div>
+    </div>
+    <div id="auth-register" style="display:none">
+      <input type="text" id="reg-name" placeholder="Your name" style="margin-bottom:12px" />
+      <input type="email" id="reg-email" placeholder="Email address" style="margin-bottom:12px" />
+      <input type="password" id="reg-password" placeholder="Password (min 6 chars)" style="margin-bottom:16px" />
+      <button class="btn-primary" onclick="registerEmail()">CREATE ACCOUNT</button>
+      <div id="reg-error" class="error-msg"></div>
+      <div id="reg-success" class="success-msg"></div>
+      <div style="margin-top:20px;font-size:12px;color:var(--muted)">Have account? <span style="color:var(--accent);cursor:pointer" onclick="toggleAuth()">Sign in</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="header-inner">
+      <div style="display:flex;align-items:center;gap:10px"><div class="logo-mark">₿</div><div><div class="logo-text">TradeVault</div><div class="logo-sub">Forex Journal Pro</div></div></div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:11px" onclick="openModal()">+ LOG TRADE</button>
+        <div class="user-info"><div class="user-avatar" id="user-avatar">?</div><button class="signout-btn" onclick="signOut()">SIGN OUT</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="tabs"><div class="tabs-inner">
+    <button class="tab-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('trades',this)">Trades</button>
+    <button class="tab-btn" onclick="switchTab('analysis',this)">Analysis</button>
+  </div></div>
+  <div class="main">
+    <div id="trialBanner" class="trial-banner" style="display:none"></div>
+    <div id="tab-dashboard">
+      <div class="stats-row"><div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val mono" id="stat-wr">—</div></div><div class="stat-card"><div class="stat-label">Total Pips</div><div class="stat-val mono" id="stat-pips">—</div></div><div class="stat-card"><div class="stat-label">Net P&L</div><div class="stat-val mono" id="stat-pnl">—</div></div><div class="stat-card"><div class="stat-label">Trades</div><div class="stat-val mono" id="stat-count">0</div><div class="stat-sub" id="stat-wl"></div></div><div class="stat-card"><div class="stat-label">Avg R:R</div><div class="stat-val mono" id="stat-rr">—</div></div><div class="stat-card"><div class="stat-label">Profit Factor</div><div class="stat-val mono" id="stat-pf">—</div></div></div>
+      <div class="chart-container"><div class="chart-title">Equity Curve</div><canvas id="equity-chart" height="140"></canvas></div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px">Recent Trades</div>
+      <div id="recent-trades"></div>
+    </div>
+    <div id="tab-trades" style="display:none"><div class="filter-row"><select id="filter-pair"><option value="All">All Pairs</option></select><select id="filter-session"><option value="All">All Sessions</option><option>London</option><option>New York</option><option>Asian</option></select><div class="count-badge" id="trade-count">0 trades</div></div><div id="all-trades"></div></div>
+    <div id="tab-analysis" style="display:none"><div class="analysis-card"><div class="analysis-title">Performance by Pair</div><div id="pair-analysis"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="analysis-card"><div class="analysis-title">Emotion vs Win Rate</div><div id="emotion-analysis"></div></div><div class="analysis-card"><div class="analysis-title">Mistake Tracker</div><div id="mistake-analysis"></div></div></div></div>
+  </div>
+  
+  <div class="app-footer">
+    <div class="footer-payment">💳 Payment: Opay <strong>8112401459</strong> (Michael Segun Martins)</div>
+    <div class="footer-whatsapp">📞 Support WhatsApp: <strong>0803 295 8122</strong></div>
+    <div class="footer-copyright">© 2026 TradeVault — Forex Journal Pro</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="trade-modal" style="display:none" onclick="closeModalOutside(event)">
+  <div class="modal-box"><div style="display:flex;justify-content:space-between;margin-bottom:22px"><div class="modal-title">Log Trade</div><button onclick="closeModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button></div>
+    <div class="form-grid"><div class="form-field"><label class="field-label">Date</label><input type="date" id="f-date" /></div><div class="form-field"><label class="field-label">Pair</label><select id="f-pair"><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>XAUUSD</option><option>GBPJPY</option></select></div><div class="form-field"><label class="field-label">Direction</label><select id="f-dir"><option>Buy</option><option>Sell</option></select></div><div class="form-field"><label class="field-label">Timeframe</label><select id="f-tf"><option>M15</option><option selected>H1</option><option>H4</option><option>D1</option></select></div><div class="form-field"><label class="field-label">Entry Price</label><input type="number" step="0.00001" id="f-entry" placeholder="1.08500" oninput="calcPreview()" /></div><div class="form-field"><label class="field-label">Exit Price</label><input type="number" step="0.00001" id="f-exit" placeholder="1.09000" oninput="calcPreview()" /></div><div class="form-field"><label class="field-label">Stop Loss</label><input type="number" step="0.00001" id="f-sl" /></div><div class="form-field"><label class="field-label">Take Profit</label><input type="number" step="0.00001" id="f-tp" /></div><div class="form-field"><label class="field-label">Lot Size</label><input type="number" step="0.01" id="f-lot" placeholder="0.10" oninput="calcPreview()" /></div><div class="form-field"><label class="field-label">Session</label><select id="f-session"><option>London</option><option>New York</option><option>Asian</option></select></div><div class="form-field"><label class="field-label">Strategy</label><select id="f-strategy"><option>BOS</option><option>Order Block</option><option>FVG</option><option>Trend Follow</option></select></div><div class="form-field"><label class="field-label">Emotion</label><select id="f-emotion"><option>Calm</option><option>Confident</option><option>FOMO</option><option>Revenge</option></select></div></div>
+    <div class="form-field"><label class="field-label">Mistake Made</label><select id="f-mistake"><option>None</option><option>Moved SL</option><option>Early Exit</option><option>Chased Price</option></select></div>
+    <div class="form-field"><label class="field-label">Notes</label><textarea id="f-notes" rows="3" placeholder="Trade notes..."></textarea></div>
+    <div id="pnl-preview" class="pnl-preview" style="display:none"><div><div class="field-label">Result</div><div class="mono" id="prev-pips"></div></div><div><div class="field-label">P&L</div><div class="mono" id="prev-dollar"></div></div></div>
+    <div style="display:flex;gap:10px;margin-top:20px"><button class="btn-primary" onclick="saveTrade()" id="save-btn">SAVE TRADE</button><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>
+    <div id="save-error" class="error-msg"></div>
+  </div>
+</div>
+
+<div class="ai-chat-btn" id="aiChatBtn"><i class="fas fa-robot" style="font-size:24px;color:#000"></i></div>
+<div class="ai-chat-window" id="aiChatWindow">
+  <div class="ai-chat-header"><span>🤖 AI Trading Coach</span><span id="closeChat" style="cursor:pointer">✕</span></div>
+  <div class="ai-chat-messages" id="chatMessages"><div class="ai-message">Hello! I'm your AI trading coach. Ask me anything about your trading performance!</div></div>
+  <div class="quick-questions" id="quickQuestions"></div>
+  <div class="ai-chat-input"><input type="text" id="chatInput" placeholder="Ask a question..."><button id="sendChatBtn">➤</button></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+<script>
+// ============================================
+// CONFIGURATION
+// ============================================
+const PRICE = 2500;
+const TRIAL_DAYS = 7;
+const OPAY_NUMBER = "8112401459";
+const YOUR_NAME = "Michael Segun Martins";
+const WHATSAPP_NUMBER = "08032958122";
+// ============================================
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+  authDomain: "web-app-a36aa.firebaseapp.com",
+  projectId: "web-app-a36aa",
+  storageBucket: "web-app-a36aa.firebasestorage.app",
+  messagingSenderId: "873638679873",
+  appId: "1:873638679873:web:490942c8492e947b09bdc0"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let trades = [];
+let equityChart = null;
+
+// ============ FIXED: REGISTER FUNCTION (AUTO-CREATES USER IN FIRESTORE) ============
+async function registerEmail() {
+  const name = document.getElementById("reg-name").value;
+  const email = document.getElementById("reg-email").value;
+  const pass = document.getElementById("reg-password").value;
+  const errorDiv = document.getElementById("reg-error");
+  const successDiv = document.getElementById("reg-success");
+  errorDiv.textContent = "";
+  successDiv.textContent = "";
+  
+  if (!name || !email || !pass) {
+    errorDiv.textContent = "Please fill all fields";
+    return;
+  }
+  if (pass.length < 6) {
+    errorDiv.textContent = "Password must be at least 6 characters";
+    return;
+  }
+  
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await cred.user.updateProfile({ displayName: name });
+    
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+    
+    // THIS CREATES THE USER DOCUMENT IN FIRESTORE AUTOMATICALLY
+    await db.collection("users").doc(cred.user.uid).set({
+      email: email,
+      name: name,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      trialEnd: trialEnd.toISOString()
+    });
+    
+    successDiv.textContent = `✅ Account created! You have ${TRIAL_DAYS} days free trial.`;
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) { 
+    errorDiv.textContent = e.message; 
+  }
+}
+
+// ============ FIXED: GOOGLE LOGIN (AUTO-CREATES USER IN FIRESTORE) ============
+async function loginGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    const result = await auth.signInWithPopup(provider);
+    const user = result.user;
+    
+    // Check if user document already exists
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    if (!userDoc.exists) {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+      await db.collection("users").doc(user.uid).set({
+        email: user.email,
+        name: user.displayName || "User",
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        trialEnd: trialEnd.toISOString()
+      });
+    }
+  } catch(e) { 
+    document.getElementById("login-error").textContent = e.message; 
+  }
+}
+
+// ============ REGULAR EMAIL LOGIN ============
+async function loginEmail() {
+  const email = document.getElementById("login-email").value;
+  const pass = document.getElementById("login-password").value;
+  try { 
+    await auth.signInWithEmailAndPassword(email, pass); 
+  } catch(e) { 
+    document.getElementById("login-error").textContent = e.message; 
+  }
+}
+
+// ============ TOGGLE AUTH SCREENS ============
+function toggleAuth() {
+  const login = document.getElementById("auth-login");
+  const reg = document.getElementById("auth-register");
+  login.style.display = login.style.display === "none" ? "block" : "none";
+  reg.style.display = reg.style.display === "none" ? "block" : "none";
+}
+
+function signOut() { 
+  auth.signOut(); 
+  location.reload(); 
+}
+
+function showPaymentModal() {
+  const userEmail = currentUser?.email || "your email";
+  const message = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n💳 SUBSCRIBE TO TRADEVAULT\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nPay ₦${PRICE} to:\n\nOpay: ${OPAY_NUMBER}\nName: ${YOUR_NAME}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nAFTER PAYMENT:\n1. Take a screenshot of your payment\n2. Send to WhatsApp: ${WHATSAPP_NUMBER}\n3. Include your email: ${userEmail}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+  alert(message);
+}
+
+async function checkAndUpdateTrial(userId, userData) {
+  const trialEnd = new Date(userData.trialEnd);
+  const now = new Date();
+  const isPaid = userData.paidUntil && new Date(userData.paidUntil) > now;
+  
+  if (!isPaid && now > trialEnd && userData.isActive) {
+    await db.collection("users").doc(userId).update({ isActive: false });
+    return false;
+  }
+  return userData.isActive || isPaid;
+}
+
+async function loadUserData(user) {
+  const userDoc = await db.collection("users").doc(user.uid).get();
+  if (!userDoc.exists) return;
+  const userData = userDoc.data();
+  
+  const isActive = await checkAndUpdateTrial(user.uid, userData);
+  
+  const trialEnd = new Date(userData.trialEnd);
+  const now = new Date();
+  const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+  
+  if (!isActive) {
+    document.getElementById("trialBanner").style.display = "flex";
+    document.getElementById("trialBanner").innerHTML = `
+      <span>⚠️ Your free trial has ended. Pay ₦${PRICE} to continue using TradeVault.</span>
+      <button onclick="showPaymentModal()">Subscribe ₦${PRICE}</button>
+    `;
+    return;
+  } else if (daysLeft <= 3 && daysLeft > 0) {
+    document.getElementById("trialBanner").style.display = "flex";
+    document.getElementById("trialBanner").innerHTML = `
+      <span>⏰ Your free trial ends in ${daysLeft} days. Subscribe now to continue.</span>
+      <button onclick="showPaymentModal()">Subscribe ₦${PRICE}</button>
+    `;
+  } else {
+    document.getElementById("trialBanner").style.display = "none";
+  }
+  
+  const tradesSnap = await db.collection("users").doc(user.uid).collection("trades").orderBy("timestamp", "desc").get();
+  trades = tradesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  refreshAll();
+}
+
+function refreshAll() { updateStats(); renderEquityChart(); renderRecentTrades(); renderTrades(); renderAnalysis(); updatePairFilter(); }
+
+function updateStats() {
+  const wins = trades.filter(t => t.pnl >= 0);
+  const losses = trades.filter(t => t.pnl < 0);
+  const wr = trades.length ? Math.round((wins.length / trades.length) * 100) : 0;
+  const totalPips = trades.reduce((s,t) => s + (t.pnl||0), 0);
+  const totalDollar = trades.reduce((s,t) => s + (t.dollar||0), 0);
+  document.getElementById("stat-wr").textContent = `${wr}%`;
+  document.getElementById("stat-pips").textContent = `${totalPips > 0 ? "+" : ""}${totalPips}`;
+  document.getElementById("stat-pnl").textContent = `$${totalDollar}`;
+  document.getElementById("stat-count").textContent = trades.length;
+  document.getElementById("stat-wl").textContent = `${wins.length}W / ${losses.length}L`;
+  const avgWin = wins.length ? wins.reduce((s,t)=>s+Math.abs(t.pnl),0)/wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((s,t)=>s+Math.abs(t.pnl),0)/losses.length : 1;
+  document.getElementById("stat-rr").textContent = avgLoss ? (avgWin/avgLoss).toFixed(2) : "—";
+  const grossWin = wins.reduce((s,t)=>s+Math.abs(t.dollar),0);
+  const grossLoss = losses.reduce((s,t)=>s+Math.abs(t.dollar),0);
+  document.getElementById("stat-pf").textContent = grossLoss ? (grossWin/grossLoss).toFixed(2) : "—";
+}
+
+function renderEquityChart() {
+  const sorted = [...trades].reverse();
+  let equity = 0;
+  const data = sorted.map(t => { equity += (t.dollar||0); return equity; });
+  const ctx = document.getElementById("equity-chart").getContext("2d");
+  if (equityChart) equityChart.destroy();
+  equityChart = new Chart(ctx, {
+    type: "line", data: { labels: data.map((_,i)=>i+1), datasets: [{ data, borderColor: "#f0b429", borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: "#f0b42918" }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
+
+function tradeCardHTML(t) {
+  const win = (t.pnl||0) >= 0;
+  return `<div class="trade-card"><div class="trade-header" onclick="toggleCard('tc-${t.id}')"><div class="trade-stripe" style="background:${win ? "var(--green)" : "var(--red)"}"></div><div style="flex:1"><div><span class="mono" style="font-weight:600">${t.pair}</span> <span class="badge ${t.direction==="Buy"?"badge-buy":"badge-sell"}">${t.direction}</span> <span style="font-size:11px;color:var(--muted)">${t.session}</span></div><div><span class="mono" style="color:${win?"var(--green)":"var(--red)"}">${win?"+":""}${t.pnl} pips</span></div></div><span style="color:var(--muted)">▼</span></div><div class="trade-body" id="tc-${t.id}" style="display:none"><div class="trade-grid"><div><div class="field-label">Entry</div><div>${t.entry}</div></div><div><div class="field-label">Exit</div><div>${t.exit}</div></div><div><div class="field-label">Lot</div><div>${t.lot}</div></div></div><div><div class="field-label">Notes</div><div style="font-size:13px">${t.notes || "-"}</div></div><button class="btn-danger" onclick="deleteTrade('${t.id}')" style="margin-top:10px">Delete</button></div></div>`;
+}
+
+function toggleCard(id) { const el = document.getElementById(id); if(el) el.style.display = el.style.display === "none" ? "block" : "none"; }
+function renderRecentTrades() { document.getElementById("recent-trades").innerHTML = trades.slice(0,5).map(tradeCardHTML).join("") || '<div class="empty">No trades yet</div>'; }
+function renderTrades() { document.getElementById("all-trades").innerHTML = trades.map(tradeCardHTML).join("") || '<div class="empty">No trades</div>'; document.getElementById("trade-count").textContent = `${trades.length} trades`; }
+function updatePairFilter() { const sel = document.getElementById("filter-pair"); const pairs = [...new Set(trades.map(t=>t.pair))]; sel.innerHTML = '<option value="All">All Pairs</option>' + pairs.map(p=>`<option>${p}</option>`).join(""); }
+function renderAnalysis() {
+  const pairData = {};
+  trades.forEach(t => { pairData[t.pair] = (pairData[t.pair] || 0) + (t.pnl||0); });
+  document.getElementById("pair-analysis").innerHTML = Object.entries(pairData).map(([p,v]) => `<div class="bar-row"><div class="bar-label">${p}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Math.abs(v)/10)}%;background:${v>=0?"var(--green)":"var(--red)"}"></div></div><div>${v>=0?"+":""}${v}</div></div>`).join("") || "No data";
+  const emotionData = {};
+  trades.forEach(t => { if(t.emotion) emotionData[t.emotion] = (emotionData[t.emotion] || 0) + (t.pnl||0); });
+  document.getElementById("emotion-analysis").innerHTML = Object.entries(emotionData).map(([e,v]) => `<div>${e}: ${v>=0?"+":""}${v} pips</div>`).join("") || "No data";
+  const mistakeData = {};
+  trades.forEach(t => { if(t.mistake && t.mistake !== 'None') mistakeData[t.mistake] = (mistakeData[t.mistake] || 0) + (t.pnl||0); });
+  document.getElementById("mistake-analysis").innerHTML = Object.entries(mistakeData).map(([m,v]) => `<div>${m}: ${v>=0?"+":""}${v} pips</div>`).join("") || "✅ No major mistakes";
+}
+
+async function saveTrade() {
+  const entry = document.getElementById("f-entry").value;
+  const exit = document.getElementById("f-exit").value;
+  if (!entry || !exit) { document.getElementById("save-error").textContent = "Entry and exit required"; return; }
+  const pair = document.getElementById("f-pair").value;
+  const dir = document.getElementById("f-dir").value;
+  const lot = parseFloat(document.getElementById("f-lot").value) || 0.1;
+  let pips = 0;
+  if (pair.includes("JPY") || pair === "XAUUSD") pips = Math.round(((parseFloat(exit) - parseFloat(entry)) * (dir === "Buy" ? 1 : -1)) * 100);
+  else pips = Math.round(((parseFloat(exit) - parseFloat(entry)) * (dir === "Buy" ? 1 : -1)) * 10000);
+  const dollar = Math.round(pips * lot * 10 * 100) / 100;
+  const trade = {
+    date: document.getElementById("f-date").value || new Date().toISOString().slice(0,10),
+    pair, direction: dir, entry, exit, lot, pnl: pips, dollar,
+    session: document.getElementById("f-session").value,
+    strategy: document.getElementById("f-strategy").value,
+    emotion: document.getElementById("f-emotion").value,
+    mistake: document.getElementById("f-mistake").value,
+    notes: document.getElementById("f-notes").value,
+    timestamp: new Date().toISOString()
+  };
+  await db.collection("users").doc(currentUser.uid).collection("trades").add(trade);
+  closeModal();
+  loadUserData(currentUser);
+}
+
+async function deleteTrade(id) {
+  if(confirm("Delete this trade?")) { await db.collection("users").doc(currentUser.uid).collection("trades").doc(id).delete(); loadUserData(currentUser); }
+}
+
+function calcPreview() {
+  const pair = document.getElementById("f-pair").value;
+  const dir = document.getElementById("f-dir").value;
+  const entry = parseFloat(document.getElementById("f-entry").value);
+  const exit = parseFloat(document.getElementById("f-exit").value);
+  const lot = parseFloat(document.getElementById("f-lot").value);
+  if (!entry || !exit || !lot) return;
+  let pips = 0;
+  if (pair.includes("JPY") || pair === "XAUUSD") pips = Math.round(((exit - entry) * (dir === "Buy" ? 1 : -1)) * 100);
+  else pips = Math.round(((exit - entry) * (dir === "Buy" ? 1 : -1)) * 10000);
+  const dollar = Math.round(pips * lot * 10 * 100) / 100;
+  document.getElementById("pnl-preview").style.display = "flex";
+  document.getElementById("prev-pips").textContent = `${pips >= 0 ? "+" : ""}${pips} pips`;
+  document.getElementById("prev-dollar").textContent = `${dollar >= 0 ? "+" : ""}$${dollar}`;
+}
+
+function openModal() { document.getElementById("trade-modal").style.display = "flex"; document.getElementById("f-date").value = new Date().toISOString().slice(0,10); document.getElementById("pnl-preview").style.display = "none"; }
+function closeModal() { document.getElementById("trade-modal").style.display = "none"; }
+function closeModalOutside(e) { if(e.target === document.getElementById("trade-modal")) closeModal(); }
+function switchTab(name, btn) {
+  ["dashboard","trades","analysis"].forEach(t => document.getElementById(`tab-${t}`).style.display = t === name ? "block" : "none");
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+// AI Chat
+const aiBtn = document.getElementById("aiChatBtn");
+const aiWindow = document.getElementById("aiChatWindow");
+document.getElementById("closeChat").onclick = () => aiWindow.classList.remove("open");
+aiBtn.onclick = () => aiWindow.classList.toggle("open");
+
+const quickQs = ["How am I doing?", "What's my win rate?", "What mistakes am I making?", "Best pair?", "How to improve?", "Emotion analysis?"];
+const qContainer = document.getElementById("quickQuestions");
+quickQs.forEach(q => { const btn = document.createElement("div"); btn.className = "quick-q"; btn.textContent = q; btn.onclick = () => sendMessage(q); qContainer.appendChild(btn); });
+
+function generateAIResponse(question, userTrades, userStats) {
+  const q = question.toLowerCase();
+  const wins = userStats.wins || 0;
+  const losses = userStats.losses || 0;
+  const total = wins + losses;
+  const wr = total ? Math.round((wins / total) * 100) : 0;
+  const totalPips = userStats.totalPips || 0;
+  const totalDollar = userStats.totalDollar || 0;
+  
+  if (q.includes('win rate') || q.includes('how am i doing') || q.includes('performance')) {
+    return `📊 Based on your ${total} trades: Win rate: ${wr}% (${wins}W/${losses}L). Total profit: ${totalPips >= 0 ? '+' : ''}${totalPips} pips ($${totalDollar}). ${wr >= 60 ? '✅ Good job! Keep it up.' : '⚠️ Focus on improving your edge.'}`;
+  }
+  if (q.includes('mistake') || q.includes('what am i doing wrong')) {
+    const mistakes = userTrades.filter(t => t.mistake && t.mistake !== 'None');
+    if (mistakes.length === 0) return "✅ No major mistakes detected! You're following your plan well.";
+    const mistakeCounts = {};
+    mistakes.forEach(m => { mistakeCounts[m.mistake] = (mistakeCounts[m.mistake] || 0) + 1; });
+    const topMistake = Object.entries(mistakeCounts).sort((a,b) => b[1] - a[1])[0];
+    return `⚠️ Your most common mistake: ${topMistake[0]} (${topMistake[1]} times). Focus on eliminating this.`;
+  }
+  if (q.includes('best pair') || q.includes('worst pair')) {
+    const pairPerf = {};
+    userTrades.forEach(t => { pairPerf[t.pair] = (pairPerf[t.pair] || 0) + (t.pnl || 0); });
+    const sorted = Object.entries(pairPerf).sort((a,b) => b[1] - a[1]);
+    if (sorted.length) return `🏆 Best pair: ${sorted[0][0]} (+${sorted[0][1]} pips). Worst: ${sorted[sorted.length-1][0]} (${sorted[sorted.length-1][1]} pips).`;
+  }
+  if (q.includes('emotion')) {
+    const emotionPerf = {};
+    userTrades.forEach(t => { if(t.emotion) { emotionPerf[t.emotion] = (emotionPerf[t.emotion] || 0) + (t.pnl || 0); } });
+    const best = Object.entries(emotionPerf).sort((a,b) => b[1] - a[1])[0];
+    if(best) return `🎭 Your best trading emotion is ${best[0]} (+${best[1]} pips). Trade when you feel this way.`;
+  }
+  if (q.includes('advice') || q.includes('improve')) {
+    if (wr < 50) return `💡 Focus on: 1) Fewer trades, higher quality. 2) Stick to your best pair. 3) Never revenge trade.`;
+    if (totalPips > 0) return `🔥 You're profitable! To improve: 1) Let winners run. 2) Track your best session. 3) Increase lot size gradually.`;
+    return `📈 Keep journaling every trade. Review your mistakes daily. Consistency beats intensity.`;
+  }
+  return `📊 You have ${total} trades. ${wr}% win rate. ${totalPips >= 0 ? 'Profitable' : 'Not profitable yet'} by ${Math.abs(totalPips)} pips. Keep going!`;
+}
+
+async function sendMessage(msg) {
+  const input = document.getElementById("chatInput");
+  const message = msg || input.value.trim();
+  if (!message) return;
+  const chatDiv = document.getElementById("chatMessages");
+  chatDiv.innerHTML += `<div class="user-message">${message}</div>`;
+  input.value = "";
+  const wins = trades.filter(t => t.pnl >= 0).length;
+  const losses = trades.filter(t => t.pnl < 0).length;
+  const totalPips = trades.reduce((s,t) => s + (t.pnl||0), 0);
+  const totalDollar = trades.reduce((s,t) => s + (t.dollar||0), 0);
+  const userStats = { wins, losses, totalPips, totalDollar };
+  const response = generateAIResponse(message, trades, userStats);
+  setTimeout(() => { chatDiv.innerHTML += `<div class="ai-message">${response}</div>`; chatDiv.scrollTop = chatDiv.scrollHeight; }, 200);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+document.getElementById("sendChatBtn").onclick = () => sendMessage();
+document.getElementById("chatInput").addEventListener("keypress", (e) => { if(e.key === "Enter") sendMessage(); });
+
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById("auth-screen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("user-avatar").textContent = (user.displayName || user.email || "?")[0].toUpperCase();
+    await loadUserData(user);
+  } else {
+    document.getElementById("auth-screen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+  }
+});
+</script>
+</body>
+</html>
