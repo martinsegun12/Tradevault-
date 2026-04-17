@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TradeVault — Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="auth-screen">
+    <div class="auth-box">
+        <div class="auth-logo">₿</div>
+        <div class="auth-title">TradeVault</div>
+        <div class="auth-sub">Forex Journal + Prop Tracker</div>
+        <div id="auth-login">
+            <input type="email" id="login-email" placeholder="Email address" style="margin-bottom:12px" />
+            <input type="password" id="login-password" placeholder="Password" style="margin-bottom:16px" />
+            <button class="btn-primary" onclick="loginEmail()">SIGN IN</button>
+            <div id="login-error" class="error-msg"></div>
+            <div class="auth-divider"><span></span><p>or</p><span></span></div>
+            <button class="btn-google" onclick="loginGoogle()">Continue with Google</button>
+            <div style="margin-top:20px;font-size:12px;color:#4a5f80">No account? <span style="color:#f0b429;cursor:pointer" onclick="toggleAuth()">Create one free</span></div>
+        </div>
+        <div id="auth-register" style="display:none">
+            <input type="text" id="reg-name" placeholder="Your name" style="margin-bottom:12px" />
+            <input type="email" id="reg-email" placeholder="Email address" style="margin-bottom:12px" />
+            <input type="password" id="reg-password" placeholder="Password (min 6 chars)" style="margin-bottom:16px" />
+            <button class="btn-primary" onclick="registerEmail()">CREATE ACCOUNT</button>
+            <div id="reg-error" class="error-msg"></div>
+            <div id="reg-success" class="success-msg"></div>
+            <div style="margin-top:20px;font-size:12px;color:#4a5f80">Have account? <span style="color:#f0b429;cursor:pointer" onclick="toggleAuth()">Sign in</span></div>
+        </div>
+    </div>
+</div>
+
+<div id="app">
+    <div class="header">
+        <div class="header-inner">
+            <div style="display:flex;align-items:center;gap:10px"><div class="logo-mark">₿</div><div><div class="logo-text">TradeVault</div><div class="logo-sub">Forex Journal + Prop Tracker</div></div></div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <a href="trades.html" class="btn-primary" style="width:auto;padding:8px 16px;font-size:11px;text-decoration:none;">+ LOG TRADE</a>
+                <div class="user-info"><div class="user-avatar" id="user-avatar">?</div><button class="signout-btn" onclick="signOut()">SIGN OUT</button></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tabs"><div class="tabs-inner">
+        <a href="index.html" class="tab-btn">Dashboard</a>
+        <a href="trades.html" class="tab-btn">Trades</a>
+        <a href="challenge.html" class="tab-btn">Prop Challenge</a>
+        <a href="journal.html" class="tab-btn">Journal</a>
+        <a href="profile.html" class="tab-btn active">Profile</a>
+    </div></div>
+    
+    <div class="main">
+        <div class="profile-card">
+            <div class="profile-avatar" id="profileAvatar">?</div>
+            <div class="profile-field"><div class="profile-label">Full Name</div><div class="profile-value" id="profileName">Loading...</div></div>
+            <div class="profile-field"><div class="profile-label">Email Address</div><div class="profile-value" id="profileEmail">Loading...</div></div>
+            <div class="profile-field"><div class="profile-label">Account Status</div><div class="profile-value" id="profileStatus">Loading...</div></div>
+            <div class="profile-field"><div class="profile-label">Trial End Date</div><div class="profile-value" id="profileTrialEnd">Loading...</div></div>
+            <div class="profile-field"><div class="profile-label">Member Since</div><div class="profile-value" id="profileCreated">Loading...</div></div>
+            
+            <div class="payment-card" style="background: linear-gradient(135deg, #1a2a3a, #0f1a24); border-radius: 20px; padding: 24px; margin: 20px 0; border: 1px solid #7c5e10;">
+                <div style="font-size: 18px; font-weight: 700; color: #f0b429; margin-bottom: 16px;">💳 Upgrade to Premium</div>
+                <div style="font-size: 36px; font-weight: 800; color: #f0b429; margin-bottom: 16px;">₦2,500</div>
+                <div style="background: #0c1220; border-radius: 12px; padding: 16px; margin: 16px 0;">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;"><span style="color: #4a5f80;">Opay Number</span><span style="font-weight: 600;">8112401459</span></div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1a2540;"><span style="color: #4a5f80;">Account Name</span><span style="font-weight: 600;">Michael Segun Martins</span></div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;"><span style="color: #4a5f80;">WhatsApp Support</span><span style="font-weight: 600;">0803 295 8122</span></div>
+                </div>
+                <div style="font-size: 11px; color: #4a5f80;">After payment, send screenshot + your email to WhatsApp for activation.</div>
+            </div>
+            <button class="btn-small" onclick="showPaymentModal()" id="subscribeBtn" style="display:none; width:100%">Subscribe ₦2,500</button>
+        </div>
+    </div>
+    
+    <div class="app-footer">
+        <div class="footer-payment">💳 Payment: Opay <strong>8112401459</strong> (Michael Segun Martins)</div>
+        <div class="footer-whatsapp">📞 Support WhatsApp: <strong>0803 295 8122</strong></div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+    let currentUser = null;
+    let currentUserData = null;
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                currentUser = user;
+                document.getElementById("auth-screen").style.display = "none";
+                document.getElementById("app").style.display = "block";
+                document.getElementById("user-avatar").textContent = (user.displayName || user.email || "?")[0].toUpperCase();
+                await loadUserProfile();
+            } else {
+                document.getElementById("auth-screen").style.display = "flex";
+                document.getElementById("app").style.display = "none";
+            }
+        });
+    });
+    
+    async function loadUserProfile() {
+        const userDoc = await db.collection("users").doc(currentUser.uid).get();
+        if (!userDoc.exists) return;
+        currentUserData = userDoc.data();
+        
+        const trialEnd = new Date(currentUserData.trialEnd);
+        const now = new Date();
+        const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+        const isActive = currentUserData.isActive === true;
+        
+        document.getElementById("profileAvatar").textContent = (currentUserData.name || "U")[0].toUpperCase();
+        document.getElementById("profileName").textContent = currentUserData.name || "-";
+        document.getElementById("profileEmail").textContent = currentUserData.email || "-";
+        
+        let statusHtml = '';
+        if (isActive) {
+            if (daysLeft > 0) statusHtml = `<span class="status-trial">✅ Active (Trial: ${daysLeft} days left)</span>`;
+            else statusHtml = `<span class="status-active">✅ Active (Paid)</span>`;
+        } else {
+            statusHtml = `<span class="status-inactive">❌ Inactive - Trial ended</span>`;
+        }
+        document.getElementById("profileStatus").innerHTML = statusHtml;
+        document.getElementById("profileTrialEnd").textContent = currentUserData.trialEnd ? new Date(currentUserData.trialEnd).toLocaleDateString() : "-";
+        document.getElementById("profileCreated").textContent = currentUserData.createdAt ? new Date(currentUserData.createdAt).toLocaleDateString() : "-";
+        
+        const subscribeBtn = document.getElementById("subscribeBtn");
+        if (subscribeBtn) {
+            subscribeBtn.style.display = (!isActive || (daysLeft <= 3 && daysLeft > 0)) ? "block" : "none";
+        }
+    }
+    
+    function showPaymentModal() {
+        alert(`Pay ₦2500 to Opay: 8112401459\nName: Michael Segun Martins\n\nAfter payment, send screenshot + your email to WhatsApp: 08032958122`);
+    }
+    
+    window.showPaymentModal = showPaymentModal;
+</script>
+</body>
+</html>
