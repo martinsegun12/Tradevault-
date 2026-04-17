@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TradeVault — Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="auth-screen">
+    <div class="auth-box">
+        <div class="auth-logo">₿</div>
+        <div class="auth-title">TradeVault</div>
+        <div class="auth-sub">Forex Journal + Prop Tracker</div>
+        <div id="auth-login">
+            <input type="email" id="login-email" placeholder="Email address">
+            <input type="password" id="login-password" placeholder="Password">
+            <button class="btn-primary" onclick="loginEmail()">SIGN IN</button>
+            <div id="login-error" class="error-msg"></div>
+            <div class="auth-divider"><span></span><p>or</p><span></span></div>
+            <button class="btn-google" onclick="loginGoogle()">
+                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Continue with Google
+            </button>
+            <div style="margin-top:20px;font-size:12px;color:#4a5f80">No account? <span style="color:#f0b429;cursor:pointer" onclick="toggleAuth()">Create one free</span></div>
+        </div>
+        <div id="auth-register" style="display:none">
+            <input type="text" id="reg-name" placeholder="Your name">
+            <input type="email" id="reg-email" placeholder="Email address">
+            <input type="password" id="reg-password" placeholder="Password (min 6 chars)">
+            <button class="btn-primary" onclick="registerEmail()">CREATE ACCOUNT</button>
+            <div id="reg-error" class="error-msg"></div>
+            <div id="reg-success" class="success-msg"></div>
+            <div style="margin-top:20px;font-size:12px;color:#4a5f80">Have account? <span style="color:#f0b429;cursor:pointer" onclick="toggleAuth()">Sign in</span></div>
+        </div>
+    </div>
+</div>
+
+<div id="app" style="display:none">
+    <div class="header">
+        <div class="header-inner">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div class="logo-mark">₿</div>
+                <div>
+                    <div class="logo-text">TradeVault</div>
+                    <div class="logo-sub">Forex Journal + Prop Tracker</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <a href="trades.html" class="btn-primary" style="width:auto;padding:8px 16px;font-size:11px;text-decoration:none;">+ LOG TRADE</a>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <button class="signout-btn" onclick="signOut()">SIGN OUT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tabs">
+        <div class="tabs-inner">
+            <a href="index.html" class="tab-btn active">Dashboard</a>
+            <a href="trades.html" class="tab-btn">Trades</a>
+            <a href="challenge.html" class="tab-btn">Prop Challenge</a>
+            <a href="journal.html" class="tab-btn">Journal</a>
+            <a href="profile.html" class="tab-btn">Profile</a>
+        </div>
+    </div>
+    
+    <div class="main">
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val mono" id="stat-wr">—</div></div>
+            <div class="stat-card"><div class="stat-label">Total Pips</div><div class="stat-val mono" id="stat-pips">—</div></div>
+            <div class="stat-card"><div class="stat-label">Net P&L</div><div class="stat-val mono" id="stat-pnl">—</div></div>
+            <div class="stat-card"><div class="stat-label">Trades</div><div class="stat-val mono" id="stat-count">0</div><div class="stat-sub" id="stat-wl"></div></div>
+            <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-val mono" id="stat-expectancy">—</div></div>
+            <div class="stat-card"><div class="stat-label">Consistency</div><div class="stat-val mono" id="stat-consistency">—</div></div>
+        </div>
+        
+        <div class="challenge-card" id="challenge-summary">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div><span class="stat-label" style="font-size: 11px;">ACTIVE CHALLENGE</span><h3 style="margin-top: 4px;" id="challenge-firm">No Active Challenge</h3></div>
+                <a href="challenge.html" class="btn-small" style="padding: 6px 12px; text-decoration: none;">Setup →</a>
+            </div>
+            <div id="challenge-summary-content">
+                <p class="text-muted" style="color: #4a5f80; font-size: 13px;">Set up your prop firm challenge to track progress</p>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">Equity Curve</div>
+            <canvas id="equity-chart" height="140"></canvas>
+        </div>
+        
+        <div style="font-size:10px;color:#4a5f80;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px">Recent Trades</div>
+        <div id="recent-trades"></div>
+    </div>
+    
+    <div class="app-footer">
+        <div class="footer-payment">💳 Payment: Opay <strong>8112401459</strong> (Michael Segun Martins)</div>
+        <div class="footer-whatsapp">📞 Support WhatsApp: <strong>0803 295 8122</strong></div>
+        <div class="footer-copyright">© 2026 TradeVault — Forex Journal + Prop Tracker</div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+    let chart = null;
+    
+    window.addEventListener('authReady', async (e) => {
+        await loadDashboardData();
+    });
+    
+    async function loadDashboardData() {
+        if (!currentUser) return;
+        const trades = await loadTrades();
+        updateDashboardStats(trades);
+        updateEquityChart(trades);
+        renderRecentTrades(trades);
+        updateChallengeSummary();
+    }
+    
+    function updateDashboardStats(trades) {
+        if (!trades.length) {
+            document.getElementById('stat-wr').textContent = '—';
+            document.getElementById('stat-pips').textContent = '—';
+            document.getElementById('stat-pnl').textContent = '—';
+            document.getElementById('stat-count').textContent = '0';
+            document.getElementById('stat-wl').textContent = '';
+            document.getElementById('stat-expectancy').textContent = '—';
+            document.getElementById('stat-consistency').textContent = '—';
+            return;
+        }
+        
+        let wins = 0, losses = 0, totalPips = 0, totalDollar = 0;
+        trades.forEach(t => {
+            const pnl = t.pnl || 0;
+            if (pnl > 0) wins++;
+            else if (pnl < 0) losses++;
+            totalPips += pnl;
+            totalDollar += t.dollar || 0;
+        });
+        const total = wins + losses;
+        const winRate = total ? (wins / total * 100).toFixed(1) : 0;
+        const expectancy = total ? (totalDollar / total).toFixed(2) : 0;
+        const consistency = total ? (wins / total * 100).toFixed(0) : 0;
+        
+        document.getElementById('stat-wr').textContent = winRate + '%';
+        document.getElementById('stat-pips').textContent = (totalPips > 0 ? '+' : '') + totalPips;
+        document.getElementById('stat-pnl').textContent = (totalDollar > 0 ? '+' : '') + '$' + totalDollar.toLocaleString();
+        document.getElementById('stat-count').textContent = total;
+        document.getElementById('stat-wl').textContent = `${wins}W / ${losses}L`;
+        document.getElementById('stat-expectancy').textContent = '$' + expectancy;
+        document.getElementById('stat-consistency').textContent = consistency + '%';
+    }
+    
+    function updateEquityChart(trades) {
+        const ctx = document.getElementById('equity-chart')?.getContext('2d');
+        if (!ctx) return;
+        
+        let runningTotal = 0;
+        const equity = [{ x: 0, y: 0 }];
+        [...trades].reverse().forEach((t, i) => {
+            runningTotal += t.dollar || 0;
+            equity.push({ x: i + 1, y: runningTotal });
+        });
+        
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Equity',
+                    data: equity,
+                    borderColor: '#f0b429',
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    fill: false,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#f0b429'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { labels: { color: '#4a5f80' } } },
+                scales: { y: { grid: { color: '#1a2540' }, ticks: { color: '#4a5f80' } }, x: { grid: { display: false }, ticks: { color: '#4a5f80' } } }
+            }
+        });
+    }
+    
+    function renderRecentTrades(trades) {
+        const container = document.getElementById('recent-trades');
+        if (!container) return;
+        
+        const recent = trades.slice(0, 5);
+        if (recent.length === 0) {
+            container.innerHTML = '<div class="empty">No trades yet. Click + LOG TRADE to start</div>';
+            return;
+        }
+        
+        container.innerHTML = recent.map(t => `
+            <div class="trade-card" style="margin-bottom: 8px;">
+                <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span class="mono" style="font-weight:600">${t.pair}</span>
+                        <span class="badge ${t.direction === 'Buy' ? 'badge-buy' : 'badge-sell'}" style="margin-left: 8px;">${t.direction}</span>
+                    </div>
+                    <div class="mono" style="color: ${(t.pnl || 0) >= 0 ? '#0fd68a' : '#f25c5c'}">
+                        ${(t.pnl || 0) >= 0 ? '+' : ''}${t.pnl || 0} pips (${(t.dollar || 0) >= 0 ? '+' : ''}$${t.dollar || 0})
+                    </div>
+                </div>
+                <div style="padding: 0 12px 12px; font-size: 11px; color: #4a5f80;">${t.date || ''}</div>
+            </div>
+        `).join('');
+    }
+    
+    function updateChallengeSummary() {
+        const saved = loadChallenge();
+        if (saved) {
+            const percent = Math.min(100, (saved.currentProfit / saved.profitTarget) * 100);
+            document.getElementById('challenge-firm').textContent = saved.firm;
+            document.getElementById('challenge-summary-content').innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span class="stat-label">Progress</span>
+                    <span>${percent.toFixed(1)}%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                    <span class="stat-label">Profit: $${saved.currentProfit.toLocaleString()}</span>
+                    <span class="stat-label">Target: $${saved.profitTarget.toLocaleString()}</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Initial load if already logged in
+    if (currentUser) {
+        loadDashboardData();
+    }
+</script>
+</body>
+</html>
