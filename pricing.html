@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault | Pricing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .pricing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+        .pricing-card {
+            max-width: 500px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(123,44,191,0.15), rgba(0,212,255,0.1));
+            border-radius: 32px;
+            padding: 2.5rem;
+            text-align: center;
+            border: 1px solid rgba(123,44,191,0.3);
+        }
+        .price {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #00d4ff;
+        }
+        .payment-info {
+            background: #0f0f1a;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        .feature-list {
+            text-align: left;
+            margin: 1.5rem 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            list-style: none;
+        }
+        .feature-list li i {
+            color: #10b981;
+            margin-right: 10px;
+        }
+        .trial-badge {
+            display: inline-block;
+            background: rgba(16,185,129,0.2);
+            color: #10b981;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <div class="particles" id="particles"></div>
+
+    <nav class="navbar">
+        <div class="logo" onclick="location.href='index.html'">
+            <i class="fas fa-vault"></i> Trade Vault
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="dashboard.html">📝 Log Trade</a>
+            <a href="analytics.html">📊 Analytics</a>
+            <a href="propfirm.html">🎯 Prop Firm</a>
+            <a href="profile.html">👤 Profile</a>
+            <a href="pricing.html" class="active">💰 Pricing</a>
+            <button class="btn-login" onclick="openModal()">Login</button>
+        </div>
+    </nav>
+
+    <div class="pricing-container">
+        <h1 class="section-title">Simple, One-Time Pricing</h1>
+        <p style="text-align: center; color: #94a3b8; margin-bottom: 2rem;">No monthly fees • Lifetime access • 15-day free trial</p>
+
+        <div class="pricing-card">
+            <div class="trial-badge"><i class="fas fa-gift"></i> 15-Day Free Trial Included</div>
+            <div class="price">₦5,000</div>
+            <p style="color: #64748b;">one-time payment • lifetime access</p>
+            
+            <div class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Unlimited Trade Logging</li>
+                <li><i class="fas fa-check-circle"></i> Full Analytics & Charts</li>
+                <li><i class="fas fa-check-circle"></i> Rank Progression System</li>
+                <li><i class="fas fa-check-circle"></i> Prop Firm Challenge Tracker</li>
+                <li><i class="fas fa-check-circle"></i> Image Uploads</li>
+                <li><i class="fas fa-check-circle"></i> CSV Export & Backup</li>
+                <li><i class="fas fa-check-circle"></i> Profile & Badges</li>
+                <li><i class="fas fa-check-circle"></i> Lifetime Updates</li>
+            </div>
+
+            <div class="payment-info">
+                <p><i class="fas fa-university"></i> <strong>Pay via Opay</strong></p>
+                <p style="font-size: 1.2rem; margin: 10px 0;">Martin segun Michael</p>
+                <p style="font-size: 1.8rem; font-weight: bold; color: #00d4ff;">8112401459</p>
+                <hr style="margin: 15px 0; border-color: #1e293b;">
+                <p><small>After payment, enter your transaction reference below:</small></p>
+                <input type="text" id="paymentRef" placeholder="Transaction Reference" style="width: 100%; margin: 10px 0;">
+                <button class="btn-trial" style="width: 100%;" onclick="verifyPayment()">Verify Payment</button>
+                <p id="paymentStatus" style="margin-top: 10px;"></p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Trade Vault</h4>
+                <p>Elite Trading Journal for Serious Traders</p>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p><i class="fas fa-phone"></i> Opay: 8112401459</p>
+                <p><i class="fas fa-user"></i> Martin segun Michael</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024 Trade Vault. Master your trading journey.</p>
+        </div>
+    </footer>
+
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between;">
+                <h2>Login</h2>
+                <i class="fas fa-times" onclick="closeModal()" style="cursor: pointer;"></i>
+            </div>
+            <input type="email" id="modalEmail" placeholder="Email">
+            <input type="password" id="modalPassword" placeholder="Password">
+            <button class="btn-trial" style="width: 100%;" onclick="modalLogin()">Login</button>
+            <p id="modalError" style="color: red;"></p>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        function createParticles() {
+            const container = document.getElementById('particles');
+            if (!container) return;
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.width = Math.random() * 4 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = Math.random() * 10 + 5 + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        async function verifyPayment() {
+            const ref = document.getElementById('paymentRef').value;
+            const user = auth.currentUser;
+            if (!ref) {
+                document.getElementById('paymentStatus').innerHTML = '❌ Enter transaction reference';
+                return;
+            }
+            if (!user) {
+                document.getElementById('paymentStatus').innerHTML = '❌ Please login first';
+                openModal();
+                return;
+            }
+            await db.collection('users').doc(user.uid).update({
+                paidUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
+                paymentRef: ref
+            });
+            document.getElementById('paymentStatus').innerHTML = '✅ Payment verified! Redirecting...';
+            setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+        }
+
+        function openModal() {
+            document.getElementById('authModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        async function modalLogin() {
+            const email = document.getElementById('modalEmail').value;
+            const pass = document.getElementById('modalPassword').value;
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+                closeModal();
+            } catch(e) {
+                document.getElementById('modalError').innerText = e.message;
+            }
+        }
+
+        window.verifyPayment = verifyPayment;
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.modalLogin = modalLogin;
+    </script>
+</body>
+</html>
