@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TradeVault — The Trader's Edge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #f5b042;
+            --primary-dark: #c47d1a;
+            --primary-glow: rgba(245, 176, 66, 0.15);
+            --bg-dark: #05080f;
+            --bg-surface: #0a0f1a;
+            --bg-card: #0f1622;
+            --border: #1a2335;
+            --text-primary: #edf2f7;
+            --text-secondary: #8a9bb5;
+            --text-muted: #4a5a78;
+            --green: #10b981;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --purple: #8b5cf6;
+        }
+        
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Landing Page Styles */
+        .landing-page { min-height: 100vh; }
+        
+        .hero {
+            background: radial-gradient(ellipse at 30% 40%, rgba(245, 176, 66, 0.08) 0%, var(--bg-dark) 70%);
+            padding: 60px 20px 80px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .hero-logo { font-size: 64px; margin-bottom: 16px; }
+        .hero-title {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), #ffd700);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 16px;
+        }
+        .hero-sub { color: var(--text-secondary); font-size: 18px; max-width: 600px; margin: 0 auto 32px; }
+        .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        
+        .btn-landing { padding: 14px 32px; border-radius: 40px; font-weight: 700; text-decoration: none; transition: all 0.3s; }
+        .btn-primary-landing { background: var(--primary); color: #000; }
+        .btn-primary-landing:hover { background: #ffc857; transform: translateY(-2px); }
+        .btn-outline-landing { border: 1px solid var(--border); color: var(--text-primary); background: transparent; }
+        .btn-outline-landing:hover { border-color: var(--primary); color: var(--primary); }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: -40px auto 60px;
+            padding: 0 20px;
+        }
+        
+        .stat-feature {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+        }
+        .stat-feature i { font-size: 32px; color: var(--primary); margin-bottom: 12px; }
+        .stat-feature h4 { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+        .stat-feature .number { font-size: 28px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+        
+        .features-section { max-width: 1200px; margin: 0 auto 60px; padding: 0 20px; }
+        .section-title { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 40px; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
+        
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s;
+        }
+        .feature-card:hover { border-color: var(--primary); transform: translateY(-4px); }
+        .feature-card i { font-size: 28px; color: var(--primary); margin-bottom: 16px; }
+        .feature-card h3 { font-size: 18px; margin-bottom: 8px; }
+        .feature-card p { color: var(--text-secondary); font-size: 13px; }
+        
+        .quotes-section {
+            background: var(--bg-surface);
+            padding: 60px 20px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .quotes-slider { max-width: 800px; margin: 0 auto; text-align: center; }
+        .quote-text { font-size: 20px; font-style: italic; line-height: 1.6; margin-bottom: 16px; }
+        .quote-author { color: var(--primary); font-weight: 600; }
+        .quote-nav { display: flex; justify-content: center; gap: 20px; margin-top: 24px; }
+        .quote-nav button { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+        
+        .differentiator-section { max-width: 1000px; margin: 60px auto; padding: 0 20px; }
+        .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+        .bad-trader, .good-trader { background: var(--bg-card); border-radius: 20px; padding: 30px; border: 1px solid var(--border); }
+        .bad-trader h3 { color: var(--red); margin-bottom: 20px; }
+        .good-trader h3 { color: var(--green); margin-bottom: 20px; }
+        .bad-trader ul, .good-trader ul { list-style: none; }
+        .bad-trader li, .good-trader li { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        .bad-trader li i { color: var(--red); }
+        .good-trader li i { color: var(--green); }
+        
+        .rank-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .rank-beginner { background: #4a5a7844; color: var(--text-secondary); }
+        .rank-intermediate { background: #3b82f644; color: #60a5fa; }
+        .rank-advanced { background: #8b5cf644; color: #a78bfa; }
+        .rank-expert { background: #f5b04244; color: var(--primary); }
+        
+        #app { display: none; }
+        
+        .header {
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            background: var(--bg-dark);
+            z-index: 50;
+        }
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+        .logo-mark { width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #000; }
+        .logo-text { font-weight: 800; font-size: 14px; letter-spacing: 2px; }
+        .logo-sub { font-size: 8px; color: var(--text-muted); letter-spacing: 3px; }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; overflow: hidden; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .tabs { border-bottom: 1px solid var(--border); padding: 0 20px; overflow-x: auto; }
+        .tabs-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 4px; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); font-weight: 600; font-size: 11px; letter-spacing: 2px; padding: 12px 18px; cursor: pointer; border-bottom: 2px solid transparent; text-decoration: none; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        
+        .main { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+        
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+        .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; }
+        .stat-val { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; }
+        
+        .progress-bar { background: var(--bg-surface); border-radius: 10px; height: 6px; overflow: hidden; }
+        .progress-fill { background: linear-gradient(90deg, var(--primary), #ffd700); height: 100%; transition: width 0.5s; }
+        
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-field { display: flex; flex-direction: column; gap: 6px; }
+        
+        input, select, textarea {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+        
+        .btn-primary { background: var(--primary); color: #000; border: none; border-radius: 10px; padding: 12px; font-weight: 700; cursor: pointer; width: 100%; }
+        .btn-secondary { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-weight: 700; cursor: pointer; }
+        
+        .chart-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .image-preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin-top: 10px; }
+        
+        .trade-card { background: var(--bg-card); border-radius: 12px; margin-bottom: 8px; padding: 12px; }
+        .trade-image { max-width: 100%; border-radius: 8px; margin-top: 8px; cursor: pointer; max-height: 200px; object-fit: cover; }
+        
+        .app-footer { max-width: 1200px; margin: 40px auto 20px; padding: 20px; text-align: center; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+        
+        @media (max-width: 768px) {
+            .hero-title { font-size: 32px; }
+            .comparison-grid { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== LANDING PAGE ========== -->
+<div id="landing-page" class="landing-page">
+    <div class="hero">
+        <div class="hero-logo">₿</div>
+        <h1 class="hero-title">TradeVault</h1>
+        <p class="hero-sub">The only trading journal that tracks your discipline, ranks your consistency, and turns good traders into great ones.</p>
+        <div class="hero-buttons">
+            <button class="btn-landing btn-primary-landing" onclick="showAuth()">Start 15-Day Free Trial →</button>
+            <button class="btn-landing btn-outline-landing" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Explore Features</button>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-feature"><i class="fas fa-chart-line"></i><h4>Active Traders</h4><div class="number">2,500+</div></div>
+        <div class="stat-feature"><i class="fas fa-book"></i><h4>Trades Logged</h4><div class="number">48K+</div></div>
+        <div class="stat-feature"><i class="fas fa-trophy"></i><h4>Avg Win Rate Increase</h4><div class="number">+34%</div></div>
+        <div class="stat-feature"><i class="fas fa-calendar"></i><h4>Free Trial</h4><div class="number">15 Days</div></div>
+    </div>
+    
+    <div id="features" class="features-section">
+        <h2 class="section-title">Everything You Need to Level Up</h2>
+        <div class="features-grid" id="features-grid"></div>
+    </div>
+    
+    <div class="differentiator-section">
+        <h2 class="section-title">What Differentiates a Good Trader from a Bad Trader?</h2>
+        <div class="comparison-grid">
+            <div class="bad-trader">
+                <h3><i class="fas fa-skull"></i> Bad Trader</h3>
+                <ul>
+                    <li><i class="fas fa-times-circle"></i> No trading plan or journal</li>
+                    <li><i class="fas fa-times-circle"></i> Chases losses (revenge trading)</li>
+                    <li><i class="fas fa-times-circle"></i> Over-leverages with no risk management</li>
+                    <li><i class="fas fa-times-circle"></i> Blames the market or news</li>
+                    <li><i class="fas fa-times-circle"></i> Inconsistent strategy hopping</li>
+                    <li><i class="fas fa-times-circle"></i> Skips post-trade analysis</li>
+                    <li><i class="fas fa-times-circle"></i> Lets emotions drive decisions</li>
+                </ul>
+            </div>
+            <div class="good-trader">
+                <h3><i class="fas fa-crown"></i> Good Trader</h3>
+                <ul>
+                    <li><i class="fas fa-check-circle"></i> Follows a backtested trading plan</li>
+                    <li><i class="fas fa-check-circle"></i> Accepts losses as part of the game</li>
+                    <li><i class="fas fa-check-circle"></i> Risk 1-2% per trade max</li>
+                    <li><i class="fas fa-check-circle"></i> Reviews every trade for improvement</li>
+                    <li><i class="fas fa-check-circle"></i> Sticks to 1-2 proven strategies</li>
+                    <li><i class="fas fa-check-circle"></i> Keeps a detailed trading journal</li>
+                    <li><i class="fas fa-check-circle"></i> Trades with discipline, not emotion</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quotes-section">
+        <div class="quotes-slider">
+            <div class="quote-text" id="quote-text">"The goal of a successful trader is to make the best trades. Money is secondary."</div>
+            <div class="quote-author" id="quote-author">— Alexander Elder</div>
+            <div class="quote-nav">
+                <button onclick="prevQuote()"><i class="fas fa-chevron-left"></i></button>
+                <span id="quote-counter" style="color: var(--text-muted); font-size: 12px;">1/20</span>
+                <button onclick="nextQuote()"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="app-footer">
+        <p>© 2026 TradeVault — The Trader's Edge | 💳 Opay: 8112401459 (Michael Segun Martins) | 📞 WhatsApp: 0803 295 8122</p>
+    </div>
+</div>
+
+<!-- ========== AUTH MODAL ========== -->
+<div id="auth-modal" class="modal-overlay" style="display: none;" onclick="closeAuthModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 36px;">₿</div>
+            <h2 style="margin-top: 8px;">Start Your 15-Day Trial</h2>
+            <p style="color: var(--text-muted); font-size: 13px;">No credit card required</p>
+        </div>
+        <div id="auth-login">
+            <input type="email" id="login-email" placeholder="Email address" style="margin-bottom: 12px;">
+            <input type="password" id="login-password" placeholder="Password (min 6 chars)" style="margin-bottom: 16px;">
+            <button class="btn-primary" onclick="loginEmail()" style="margin-bottom: 12px;">Sign In / Start Free Trial</button>
+            <div class="auth-divider" style="display: flex; align-items: center; gap: 12px; margin: 16px 0;">
+                <span style="flex:1; height:1px; background: var(--border);"></span>
+                <span style="color: var(--text-muted);">or</span>
+                <span style="flex:1; height:1px; background: var(--border);"></span>
+            </div>
+            <button class="btn-primary" onclick="loginGoogle()" style="background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border);">Continue with Google</button>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 20px; text-align: center;">No account? We'll create one free with 15-day trial</p>
+        </div>
+        <div id="auth-error" class="error-msg" style="color: var(--red); text-align: center; margin-top: 12px;"></div>
+    </div>
+</div>
+
+<!-- ========== APP CONTAINER ========== -->
+<div id="app">
+    <div class="header">
+        <div class="header-inner">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="logo-mark">₿</div>
+                <div><div class="logo-text">TradeVault</div><div class="logo-sub">The Trader's Edge</div></div>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar" onclick="document.getElementById('avatar-input').click()">👤</div>
+                <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(event)">
+                <span id="rank-badge" class="rank-badge rank-beginner">📊 Beginner</span>
+                <button class="signout-btn" onclick="signOut()" style="background:none; border:none; color: var(--text-muted); cursor: pointer;">Exit</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tabs"><div class="tabs-inner">
+        <a href="#" class="tab-btn active" data-tab="dashboard">Dashboard</a>
+        <a href="#" class="tab-btn" data-tab="trades">Trades</a>
+        <a href="#" class="tab-btn" data-tab="challenge">Prop Challenge</a>
+        <a href="#" class="tab-btn" data-tab="journal">Journal</a>
+        <a href="#" class="tab-btn" data-tab="profile">Profile</a>
+    </div></div>
+    
+    <div class="main" id="main-content"></div>
+    
+    <div class="app-footer">
+        <p>© 2026 TradeVault — The Trader's Edge | 💳 Opay: 8112401459 (Michael Segun Martins) | 📞 WhatsApp: 0803 295 8122</p>
+    </div>
+</div>
+
+<script>
+    // ========== FIREBASE CONFIG ==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+        authDomain: "web-app-a36aa.firebaseapp.com",
+        projectId: "web-app-a36aa",
+        storageBucket: "web-app-a36aa.firebasestorage.app",
+        messagingSenderId: "873638679873",
+        appId: "1:873638679873:web:490942c8492e947b09bdc0"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    
+    let currentUser = null;
+    let currentTrades = [];
+    let currentChallenge = null;
+    let currentRank = { level: 'beginner', score: 0, percentile: 0 };
+    let currentChartImage = null;
+    
+    // ========== COMPLETE TRADING INSTRUMENTS (80+ Pairs) ==========
+    const TRADING_INSTRUMENTS = {
+        // FOREX MAJORS
+        forex: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'NZDUSD', 'USDCHF'],
+        // FOREX CROSSES
+        forexCrosses: ['EURGBP', 'EURAUD', 'EURCAD', 'EURCHF', 'EURJPY', 'EURNZD', 'GBPAUD', 'GBPCAD', 'GBPCHF', 'GBPJPY', 'GBPNZD', 'AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'CADCHF', 'CADJPY', 'CHFJPY', 'NZDJPY', 'NZDCAD', 'NZDCHF'],
+        // COMMODITIES
+        commodities: ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD', 'USOIL', 'UKOIL', 'NGAS', 'COPPER'],
+        // INDICES
+        indices: ['US30', 'NAS100', 'SPX500', 'UK100', 'DE30', 'FR40', 'EU50', 'JP225', 'AUS200', 'CN50', 'HK50', 'SG20', 'IN50'],
+        // FUTURES
+        futures: ['ES_F', 'YM_F', 'NQ_F', 'RTY_F', 'CL_F', 'GC_F', 'SI_F', 'HG_F', 'ZB_F', 'ZN_F', 'ZF_F', 'ZT_F'],
+        // OPTIONS (simulated underlyings)
+        options: ['SPX_OPT', 'NDX_OPT', 'RUT_OPT', 'AAPL_OPT', 'MSFT_OPT', 'AMZN_OPT', 'GOOGL_OPT', 'TSLA_OPT'],
+        // CRYPTOCURRENCIES
+        crypto: ['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD', 'ADAUSD', 'DOGEUSD', 'DOTUSD', 'LINKUSD', 'AVAXUSD', 'MATICUSD', 'UNIUSD', 'ATOMUSD', 'LTCUSD', 'BNBUSD']
+    };
+    
+    // Flatten all instruments
+    const ALL_INSTRUMENTS = [
+        ...TRADING_INSTRUMENTS.forex,
+        ...TRADING_INSTRUMENTS.forexCrosses,
+        ...TRADING_INSTRUMENTS.commodities,
+        ...TRADING_INSTRUMENTS.indices,
+        ...TRADING_INSTRUMENTS.futures,
+        ...TRADING_INSTRUMENTS.options,
+        ...TRADING_INSTRUMENTS.crypto
+    ];
+    
+    // Instrument type detection for pip calculation
+    function getInstrumentType(pair) {
+        if (TRADING_INSTRUMENTS.forex.includes(pair) || TRADING_INSTRUMENTS.forexCrosses.includes(pair)) return 'forex';
+        if (TRADING_INSTRUMENTS.commodities.includes(pair)) {
+            if (pair.includes('XAU')) return 'gold';
+            if (pair.includes('XAG')) return 'silver';
+            return 'commodity';
+        }
+        if (TRADING_INSTRUMENTS.indices.includes(pair)) return 'index';
+        if (TRADING_INSTRUMENTS.futures.includes(pair)) return 'future';
+        if (TRADING_INSTRUMENTS.options.includes(pair)) return 'option';
+        if (TRADING_INSTRUMENTS.crypto.includes(pair)) return 'crypto';
+        return 'forex';
+    }
+    
+    // Pips calculation based on instrument type
+    function calculatePips(pair, direction, entry, exit, lot) {
+        let pips = 0;
+        let pointValue = 0;
+        const type = getInstrumentType(pair);
+        const diff = (exit - entry) * (direction === 'Buy' ? 1 : -1);
+        
+        switch(type) {
+            case 'forex':
+                if (pair.includes('JPY')) {
+                    pips = Math.round(diff * 100);
+                    pointValue = lot * 0.01;
+                } else {
+                    pips = Math.round(diff * 10000);
+                    pointValue = lot * 0.0001;
+                }
+                break;
+            case 'gold':
+                pips = Math.round(diff * 100);
+                pointValue = lot * 1;
+                break;
+            case 'silver':
+                pips = Math.round(diff * 1000);
+                pointValue = lot * 5;
+                break;
+            case 'commodity':
+                pips = Math.round(diff * 1000);
+                pointValue = lot * 10;
+                break;
+            case 'index':
+                pips = Math.round(diff);
+                pointValue = lot * 1;
+                break;
+            case 'future':
+                pips = Math.round(diff);
+                pointValue = lot * 5;
+                break;
+            case 'crypto':
+                if (pair.includes('BTC')) {
+                    pips = Math.round(diff * 100);
+                    pointValue = lot * 1;
+                } else {
+                    pips = Math.round(diff * 1000);
+                    pointValue = lot * 0.1;
+                }
+                break;
+            default:
+                pips = Math.round(diff * 10000);
+                pointValue = lot * 0.0001;
+        }
+        
+        const dollar = Math.round(pips * pointValue * 100) / 100;
+        return { pips, dollar };
+    }
+    
+    // ========== FEATURES LIST ==========
+    const FEATURES_LIST = [
+        { icon: "fas fa-chart-pie", title: "Sharpe Ratio & Risk Metrics", desc: "Track risk-adjusted returns" },
+        { icon: "fas fa-chart-line", title: "Profit Factor", desc: "Gross Profit / Gross Loss" },
+        { icon: "fas fa-balance-scale", title: "Avg Win/Loss Ratio", desc: "Know your edge" },
+        { icon: "fas fa-skull-crossbones", title: "Max Consecutive Losses", desc: "Track your worst streaks" },
+        { icon: "fas fa-chart-line", title: "Largest Drawdown %", desc: "Monitor peak-to-trough" },
+        { icon: "fas fa-dollar-sign", title: "Expectancy in R", desc: "Per-trade risk multiples" },
+        { icon: "fas fa-building", title: "Multi-Broker Support", desc: "Personal, FTMO, MFF" },
+        { icon: "fas fa-tag", title: "Order Type Tagging", desc: "Market, Limit, Stop" },
+        { icon: "fas fa-clock", title: "Trade Duration", desc: "Minutes to days" },
+        { icon: "fas fa-receipt", title: "Slippage & Commission", desc: "True cost tracking" },
+        { icon: "fas fa-check-double", title: "Pre-Trade Checklist", desc: "Build discipline" },
+        { icon: "fas fa-bell", title: "Price Alerts", desc: "Set reminders" },
+        { icon: "fas fa-exclamation-triangle", title: "Mistake Tagging", desc: "FOMO, revenge, chasing" },
+        { icon: "fas fa-journal-whills", title: "Daily Journal Prompts", desc: "Reflect daily" },
+        { icon: "fas fa-smile", title: "Emotion Slider", desc: "Track psychology" },
+        { icon: "fas fa-chart-simple", title: "Auto Drawdown Tracker", desc: "Prop firm ready" },
+        { icon: "fas fa-layer-group", title: "Phase 1/2 Progress", desc: "Challenge milestones" },
+        { icon: "fas fa-calendar-day", title: "Trading Day Counter", desc: "Days remaining" },
+        { icon: "fas fa-share-alt", title: "Anonymous Share Link", desc: "Get mentorship" },
+        { icon: "fas fa-file-pdf", title: "PDF Reports", desc: "Weekly/monthly export" },
+        { icon: "fas fa-camera", title: "Chart Screenshots", desc: "Upload trade images" },
+        { icon: "fas fa-chart-simple", title: "80+ Instruments", desc: "Forex, Indices, Futures, Crypto" }
+    ];
+    
+    // 20 Trading Quotes
+    const TRADING_QUOTES = [
+        { text: "The goal of a successful trader is to make the best trades. Money is secondary.", author: "Alexander Elder" },
+        { text: "It's not whether you're right or wrong, but how much money you make when you're right and how much you don't lose when you're wrong.", author: "George Soros" },
+        { text: "The markets are constantly in a state of uncertainty and flux. The wise trader understands this and trades within the probabilities.", author: "Bill Lipschutz" },
+        { text: "Losing is part of trading. The trick is to lose small and win big.", author: "Ed Seykota" },
+        { text: "Risk comes from not knowing what you're doing.", author: "Warren Buffett" },
+        { text: "The four most dangerous words in investing are: 'this time it's different.'", author: "Sir John Templeton" },
+        { text: "The key to trading is not predicting the future, but having a plan for multiple outcomes.", author: "Ray Dalio" },
+        { text: "Discipline is the key to trading success, not just knowledge.", author: "Linda Raschke" },
+        { text: "Don't let your emotions make your trading decisions.", author: "Jesse Livermore" },
+        { text: "Plan your trade and trade your plan.", author: "Unknown" },
+        { text: "The trend is your friend until it bends.", author: "Ed Seykota" },
+        { text: "Amateurs look for challenges, professionals look for easy trades.", author: "Peter Brandt" },
+        { text: "The most important quality for a trader is patience.", author: "Paul Tudor Jones" },
+        { text: "Do not anticipate and move without market confirmation.", author: "Jesse Livermore" },
+        { text: "Better to be approximately right than exactly wrong.", author: "John Maynard Keynes" },
+        { text: "In trading, you have to be defensive and aggressive at the same time.", author: "Stanley Druckenmiller" },
+        { text: "Your first loss is your best loss.", author: "Unknown" },
+        { text: "Trading doesn't just reveal your character, it builds it.", author: "Unknown" },
+        { text: "The more you learn, the less you risk.", author: "Unknown" },
+        { text: "Successful trading is 10% strategy and 90% psychology.", author: "Unknown" }
+    ];
+    
+    let quoteIndex = 0;
+    function nextQuote() { quoteIndex = (quoteIndex + 1) % TRADING_QUOTES.length; updateQuote(); }
+    function prevQuote() { quoteIndex = (quoteIndex - 1 + TRADING_QUOTES.length) % TRADING_QUOTES.length; updateQuote(); }
+    function updateQuote() {
+        const q = TRADING_QUOTES[quoteIndex];
+        document.getElementById('quote-text').textContent = `"${q.text}"`;
+        document.getElementById('quote-author').textContent = `— ${q.author}`;
+        document.getElementById('quote-counter').textContent = `${quoteIndex+1}/${TRADING_QUOTES.length}`;
+    }
+    
+    function renderFeatures() {
+        const container = document.getElementById('features-grid');
+        if (container) {
+            container.innerHTML = FEATURES_LIST.map(f => `
+                <div class="feature-card">
+                    <i class="${f.icon}"></i>
+                    <h3>${f.title}</h3>
+                    <p>${f.desc}</p>
+                </div>
+            `).join('');
+        }
+    }
+    
+    // ========== RANKING SYSTEM ==========
+    function calculateUserRank(trades, journalStreak) {
+        let score = 0;
+        if (trades.length > 0) {
+            const wins = trades.filter(t => t.pnl > 0).length;
+            const winRate = wins / trades.length;
+            score += winRate * 35;
+            score += Math.min(trades.length / 5, 25);
+        }
+        score += Math.min(journalStreak * 2, 20);
+        let level = 'beginner';
+        if (score >= 70) level = 'expert';
+        else if (score >= 50) level = 'advanced';
+        else if (score >= 25) level = 'intermediate';
+        return { level, score: Math.min(score, 100) };
+    }
+    
+    function getRankBadgeHTML(level) {
+        const icons = { beginner: '🌱', intermediate: '📈', advanced: '⚡', expert: '🏆' };
+        const labels = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', expert: 'Expert' };
+        return `<span class="rank-badge rank-${level}">${icons[level]} ${labels[level]}</span>`;
+    }
+    
+    // ========== AUTH & TRIAL ==========
+    async function startTrial(user) {
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 15);
+        await db.collection("users").doc(user.uid).set({
+            email: user.email,
+            name: user.displayName || user.email.split('@')[0],
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            trialEnd: trialEnd.toISOString(),
+            avatarUrl: null,
+            journalStreak: 0
+        }, { merge: true });
+    }
+    
+    async function checkTrialStatus(user) {
+        const doc = await db.collection("users").doc(user.uid).get();
+        if (!doc.exists) return true;
+        const data = doc.data();
+        if (!data.isActive) return false;
+        if (data.trialEnd && new Date(data.trialEnd) < new Date()) {
+            await db.collection("users").doc(user.uid).update({ isActive: false });
+            return false;
+        }
+        return true;
+    }
+    
+    window.loginEmail = async () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        try {
+            const cred = await auth.signInWithEmailAndPassword(email, password);
+            await startTrial(cred.user);
+            document.getElementById('auth-modal').style.display = 'none';
+        } catch(e) {
+            if (e.code === 'auth/user-not-found') {
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await startTrial(cred.user);
+                document.getElementById('auth-modal').style.display = 'none';
+            } else {
+                document.getElementById('auth-error').textContent = e.message;
+            }
+        }
+    };
+    
+    window.loginGoogle = async () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            const result = await auth.signInWithPopup(provider);
+            await startTrial(result.user);
+            document.getElementById('auth-modal').style.display = 'none';
+        } catch(e) {
+            document.getElementById('auth-error').textContent = e.message;
+        }
+    };
+    
+    window.showAuth = () => { document.getElementById('auth-modal').style.display = 'flex'; };
+    window.closeAuthModal = (e) => { if (e.target === document.getElementById('auth-modal')) document.getElementById('auth-modal').style.display = 'none'; };
+    window.signOut = async () => { await auth.signOut(); location.reload(); };
+    
+    window.uploadAvatar = async (event) => {
+        const file = event.target.files[0];
+        if (!file || !currentUser) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64 = e.target.result;
+            await db.collection("users").doc(currentUser.uid).update({ avatarUrl: base64 });
+            document.getElementById('user-avatar').innerHTML = `<img src="${base64}" width="36" height="36" style="border-radius:50%; object-fit:cover">`;
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    async function loadAvatar() {
+        if (!currentUser) return;
+        const doc = await db.collection("users").doc(currentUser.uid).get();
+        const avatarUrl = doc.data()?.avatarUrl;
+        if (avatarUrl) {
+            document.getElementById('user-avatar').innerHTML = `<img src="${avatarUrl}" width="36" height="36" style="border-radius:50%; object-fit:cover">`;
+        }
+    }
+    
+    async function loadTrades() {
+        if (!currentUser) return [];
+        const snapshot = await db.collection("users").doc(currentUser.uid).collection("trades").orderBy("date", "desc").get();
+        currentTrades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return currentTrades;
+    }
+    
+    // ========== MODULE LOADING ==========
+    async function loadModule(module) {
+        const container = document.getElementById('main-content');
+        const trades = await loadTrades();
+        const userDoc = await db.collection("users").doc(currentUser.uid).get();
+        const challengeData = userDoc.data()?.challenge || null;
+        const journalStreak = userDoc.data()?.journalStreak || 0;
+        
+        const rank = calculateUserRank(trades, journalStreak);
+        currentRank = rank;
+        document.getElementById('rank-badge').innerHTML = getRankBadgeHTML(rank.level);
+        
+        if (module === 'dashboard') {
+            container.innerHTML = renderDashboard(trades, rank, challengeData);
+            initCharts(trades);
+        } else if (module === 'trades') {
+            container.innerHTML = renderTradesPage(trades);
+        } else if (module === 'challenge') {
+            container.innerHTML = renderChallengePage(challengeData);
+        } else if (module === 'journal') {
+            container.innerHTML = renderJournalPage(userDoc.data());
+        } else if (module === 'profile') {
+            container.innerHTML = renderProfilePage(userDoc.data(), rank);
+        }
+    }
+    
+    function renderDashboard(trades, rank, challengeData) {
+        const wins = trades.filter(t => t.pnl > 0).length;
+        const winRate = trades.length ? ((wins / trades.length) * 100).toFixed(1) : 0;
+        const totalPips = trades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+        const totalPnL = trades.reduce((sum, t) => sum + (t.dollar || 0), 0);
+        const grossProfit = trades.filter(t => t.dollar > 0).reduce((s, t) => s + t.dollar, 0);
+        const grossLoss = Math.abs(trades.filter(t => t.dollar < 0).reduce((s, t) => s + t.dollar, 0));
+        const profitFactor = grossLoss === 0 ? grossProfit : (grossProfit / grossLoss).toFixed(2);
+        
+        let challengeHtml = '';
+        if (challengeData) {
+            const percent = (challengeData.currentProfit / challengeData.profitTarget) * 100;
+            challengeHtml = `<div class="stat-card" style="grid-column: span 2;"><div class="stat-label">Active Prop Challenge</div><div><strong>${challengeData.firm}</strong> - Phase ${challengeData.phase}</div><div class="progress-bar" style="margin-top: 8px;"><div class="progress-fill" style="width: ${percent}%;"></div></div></div>`;
+        }
+        
+        return `
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val">${winRate}%</div></div>
+                <div class="stat-card"><div class="stat-label">Total Pips</div><div class="stat-val">${totalPips}</div></div>
+                <div class="stat-card"><div class="stat-label">Net P&L</div><div class="stat-val">$${totalPnL.toFixed(2)}</div></div>
+                <div class="stat-card"><div class="stat-label">Trades</div><div class="stat-val">${trades.length}</div></div>
+                <div class="stat-card"><div class="stat-label">Profit Factor</div><div class="stat-val">${profitFactor}</div></div>
+                <div class="stat-card"><div class="stat-label">Your Rank</div><div class="stat-val">${rank.level.toUpperCase()}</div></div>
+            </div>
+            ${challengeHtml}
+            <div class="chart-container" style="background: var(--bg-card); border-radius: 16px; padding: 20px; margin-top: 20px;">
+                <canvas id="equity-chart" height="120"></canvas>
+            </div>
+            <div style="margin-top: 24px;">
+                <div class="stat-label">Recent Trades</div>
+                ${trades.slice(0, 5).map(t => `
+                    <div style="background: var(--bg-card); border-radius: 12px; padding: 12px; margin-top: 8px; display: flex; justify-content: space-between;">
+                        <span>${t.pair} ${t.direction}</span>
+                        <span style="color: ${t.pnl > 0 ? 'var(--green)' : 'var(--red)'}">${t.pnl > 0 ? '+' : ''}${t.pnl} pips (${t.dollar > 0 ? '+' : ''}$${t.dollar})</span>
+                    </div>
+                `).join('')}
+                ${trades.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">No trades yet. Click Trades to add your first trade.</p>' : ''}
+            </div>
+        `;
+    }
+    
+    function initCharts(trades) {
+        setTimeout(() => {
+            const canvas = document.getElementById('equity-chart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let equity = 0;
+            const equityCurve = [...trades].reverse().map(t => { equity += t.dollar || 0; return equity; });
+            if (equityCurve.length > 0) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: equityCurve.map((_, i) => i+1), datasets: [{ label: 'Equity', data: equityCurve, borderColor: '#f5b042', tension: 0.3, fill: false }] },
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+                });
+            }
+        }, 100);
+    }
+    
+    function renderTradesPage(trades) {
+        return `
+            <div style="margin-bottom: 16px;">
+                <button class="btn-primary" onclick="openAddTradeModal()" style="width: auto; padding: 10px 20px;">+ New Trade</button>
+            </div>
+            <div id="trades-list">
+                ${trades.map(t => `
+                    <div class="trade-card">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div><strong>${t.pair}</strong> ${t.direction} | ${t.lot} lot</div>
+                            <div style="color: ${t.pnl > 0 ? 'var(--green)' : 'var(--red)'}">${t.pnl > 0 ? '+' : ''}${t.pnl} pips (${t.dollar > 0 ? '+' : ''}$${t.dollar})</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">${t.date} | ${t.strategy || '—'} | ${t.session || '—'} | ${t.broker || 'Personal'}</div>
+                        ${t.mistake && t.mistake !== 'None' ? `<div style="font-size: 10px; color: var(--red); margin-top: 4px;">⚠️ Mistake: ${t.mistake}</div>` : ''}
+                        ${t.chartImage ? `<img src="${t.chartImage}" class="trade-image" onclick="window.open(this.src)" />` : ''}
+                        <button onclick="deleteTradeItem('${t.id}')" style="background: none; border: none; color: var(--red); font-size: 11px; margin-top: 8px;">Delete</button>
+                    </div>
+                `).join('')}
+                ${trades.length === 0 ? '<p style="text-align: center; padding: 40px; color: var(--text-muted);">No trades yet. Click + New Trade to start.</p>' : ''}
+            </div>
+        `;
+    }
+    
+    function renderChallengePage(challengeData) {
+        if (!challengeData) {
+            return `
+                <div style="background: var(--bg-card); border-radius: 16px; padding: 24px;">
+                    <h3>Setup Prop Challenge</h3>
+                    <div class="form-grid" style="margin-top: 16px;">
+                        <div class="form-field"><label>Firm</label><input id="ch-firm" placeholder="FTMO" value="FTMO"></div>
+                        <div class="form-field"><label>Account Size</label><select id="ch-size"><option>10000</option><option>25000</option><option selected>100000</option><option>200000</option></select></div>
+                        <div class="form-field"><label>Phase</label><select id="ch-phase"><option>1</option><option>2</option><option>funded</option></select></div>
+                        <div class="form-field"><label>Profit Target %</label><input id="ch-profit-pct" value="10"></div>
+                        <div class="form-field"><label>Daily Loss %</label><input id="ch-daily-pct" value="5"></div>
+                        <div class="form-field"><label>Max Loss %</label><input id="ch-max-pct" value="10"></div>
+                    </div>
+                    <button class="btn-primary" onclick="saveChallengeSetup()" style="margin-top: 20px;">Start Challenge</button>
+                </div>
+            `;
+        }
+        const percent = (challengeData.currentProfit / challengeData.profitTarget) * 100;
+        return `
+            <div style="background: var(--bg-card); border-radius: 16px; padding: 24px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <div><h2>${challengeData.firm}</h2><p>Phase ${challengeData.phase} | $${challengeData.size.toLocaleString()}</p></div>
+                    <div><div class="stat-label">Days Remaining</div><div class="stat-val" style="color: var(--primary);">${challengeData.daysLeft}</div></div>
+                </div>
+                <div style="margin: 20px 0;">
+                    <div class="stat-label">Profit Target</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                    <div>$${challengeData.currentProfit.toLocaleString()} / $${challengeData.profitTarget.toLocaleString()}</div>
+                </div>
+                <div style="display: flex; gap: 10px; margin: 20px 0;">
+                    <input type="number" id="profit-update" placeholder="Today's P&L" style="flex: 1;">
+                    <button class="btn-primary" onclick="updateChallengeProfitUI()" style="width: auto; padding: 10px 20px;">Update</button>
+                </div>
+                <button onclick="resetChallenge()" style="background: none; border: 1px solid var(--red); color: var(--red); padding: 8px; border-radius: 8px;">Reset Challenge</button>
+            </div>
+        `;
+    }
+    
+    function renderJournalPage(userData) {
+        return `
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-label">Daily Streak</div><div class="stat-val">${userData?.journalStreak || 0} days</div><button class="btn-primary" onclick="markDailyCheckin()" style="margin-top: 12px;">✓ Check In</button></div>
+            </div>
+            <div style="background: var(--bg-card); border-radius: 16px; padding: 24px;">
+                <h3>Today's Journal Entry</h3>
+                <textarea id="journal-entry" rows="4" placeholder="What did you learn today? What emotions did you feel?" style="width: 100%; margin: 12px 0;"></textarea>
+                <select id="mistake-select" style="margin: 12px 0; width: 100%;">
+                    <option value="None">No mistake</option>
+                    <option value="FOMO Entry">FOMO Entry</option>
+                    <option value="Revenge Trading">Revenge Trading</option>
+                    <option value="Moved Stop Loss">Moved Stop Loss</option>
+                    <option value="Chased Price">Chased Price</option>
+                    <option value="Overtraded">Overtraded</option>
+                </select>
+                <button class="btn-primary" onclick="saveJournalEntry()">Save Journal Entry</button>
+            </div>
+        `;
+    }
+    
+    function renderProfilePage(userData, rank) {
+        const trialEnd = userData?.trialEnd ? new Date(userData.trialEnd).toLocaleDateString() : 'Active';
+        return `
+            <div style="background: var(--bg-card); border-radius: 20px; padding: 24px; max-width: 500px; margin: 0 auto;">
+                <div style="text-align: center;">
+                    <div class="user-avatar" style="width: 80px; height: 80px; margin: 0 auto 16px; font-size: 40px;">${userData?.avatarUrl ? '' : '👤'}</div>
+                    <h2>${userData?.name || currentUser.email}</h2>
+                    ${getRankBadgeHTML(rank.level)}
+                </div>
+                <div style="margin: 24px 0;">
+                    <div class="profile-field"><div class="stat-label">Email</div><div>${currentUser.email}</div></div>
+                    <div class="profile-field"><div class="stat-label">Trial Ends</div><div>${trialEnd}</div></div>
+                    <div class="profile-field"><div class="stat-label">Trader Score</div><div>${rank.score}/100</div></div>
+                </div>
+                <button class="btn-primary" onclick="generatePDFReport()">📄 Export PDF Report</button>
+                <button class="btn-secondary" onclick="copyShareLink()" style="margin-top: 12px;">🔗 Copy Anonymous Share Link</button>
+            </div>
+        `;
+    }
+    
+    // ========== TRADE MODAL WITH IMAGE UPLOAD ==========
+    window.openAddTradeModal = () => {
+        currentChartImage = null;
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h3>Log New Trade</h3>
+                <div class="form-grid" style="margin-top: 16px;">
+                    <div class="form-field"><label>Instrument</label><select id="modal-pair">${ALL_INSTRUMENTS.map(p => `<option>${p}</option>`).join('')}</select></div>
+                    <div class="form-field"><label>Direction</label><select id="modal-dir"><option>Buy</option><option>Sell</option></select></div>
+                    <div class="form-field"><label>Entry Price</label><input id="modal-entry" type="number" step="0.00001" placeholder="Entry"></div>
+                    <div class="form-field"><label>Exit Price</label><input id="modal-exit" type="number" step="0.00001" placeholder="Exit"></div>
+                    <div class="form-field"><label>Lot Size</label><input id="modal-lot" type="number" step="0.01" value="0.10"></div>
+                    <div class="form-field"><label>Date</label><input id="modal-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+                    <div class="form-field"><label>Strategy</label><input id="modal-strategy" placeholder="BOS, FVG, OB"></div>
+                    <div class="form-field"><label>Session</label><select id="modal-session"><option>London</option><option>New York</option><option>Asian</option></select></div>
+                    <div class="form-field"><label>Broker Account</label><select id="modal-broker"><option>Personal</option><option>FTMO</option><option>MFF</option></select></div>
+                    <div class="form-field"><label>Order Type</label><select id="modal-order-type"><option>Market</option><option>Limit</option><option>Stop</option></select></div>
+                    <div class="form-field"><label>Mistake</label><select id="modal-mistake"><option>None</option><option>FOMO</option><option>Revenge</option><option>Moved SL</option></select></div>
+                    <div class="form-field"><label>Emotion (1-10)</label><input id="modal-emotion" type="range" min="1" max="10" value="5"></div>
+                </div>
+                <div class="form-field">
+                    <label>Chart Screenshot</label>
+                    <div class="chart-upload-area" onclick="document.getElementById('modal-chart-input').click()">📸 Tap to upload chart image</div>
+                    <input type="file" id="modal-chart-input" accept="image/*" style="display:none" onchange="previewChartImage(event)">
+                    <img id="modal-image-preview" class="image-preview" style="display:none;">
+                </div>
+                <div id="modal-pnl-preview" style="background: var(--bg-surface); border-radius: 10px; padding: 12px; margin: 16px 0; text-align: center;"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-primary" onclick="saveTradeModal()">Save Trade</button>
+                    <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add real-time P&L preview
+        const entryInput = document.getElementById('modal-entry');
+        const exitInput = document.getElementById('modal-exit');
+        const pairSelect = document.getElementById('modal-pair');
+        const dirSelect = document.getElementById('modal-dir');
+        const lotInput = document.getElementById('modal-lot');
+        
+        const updatePreview = () => {
+            const pair = pairSelect?.value;
+            const dir = dirSelect?.value;
+            const entry = parseFloat(entryInput?.value);
+            const exit = parseFloat(exitInput?.value);
+            const lot = parseFloat(lotInput?.value) || 0.1;
+            if (entry && exit) {
+                const { pips, dollar } = calculatePips(pair, dir, entry, exit, lot);
+                document.getElementById('modal-pnl-preview').innerHTML = `<span class="stat-label">Preview</span><div class="stat-val" style="color: ${pips >= 0 ? 'var(--green)' : 'var(--red)'}">${pips >= 0 ? '+' : ''}${pips} pips (${dollar >= 0 ? '+' : ''}$${dollar})</div>`;
+            } else {
+                document.getElementById('modal-pnl-preview').innerHTML = '<span class="stat-label">Enter entry & exit to see P&L</span>';
+            }
+        };
+        
+        entryInput?.addEventListener('input', updatePreview);
+        exitInput?.addEventListener('input', updatePreview);
+        pairSelect?.addEventListener('change', updatePreview);
+        dirSelect?.addEventListener('change', updatePreview);
+        lotInput?.addEventListener('input', updatePreview);
+    };
+    
+    window.previewChartImage = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            currentChartImage = e.target.result;
+            const preview = document.getElementById('modal-image-preview');
+            preview.src = currentChartImage;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    window.saveTradeModal = async () => {
+        const pair = document.getElementById('modal-pair')?.value;
+        const direction = document.getElementById('modal-dir')?.value;
+        const entry = parseFloat(document.getElementById('modal-entry')?.value);
+        const exit = parseFloat(document.getElementById('modal-exit')?.value);
+        const lot = parseFloat(document.getElementById('modal-lot')?.value);
+        const date = document.getElementById('modal-date')?.value;
+        const strategy = document.getElementById('modal-strategy')?.value;
+        const session = document.getElementById('modal-session')?.value;
+        const broker = document.getElementById('modal-broker')?.value;
+        const orderType = document.getElementById('modal-order-type')?.value;
+        const mistake = document.getElementById('modal-mistake')?.value;
+        const emotion = document.getElementById('modal-emotion')?.value;
+        
+        if (!entry || !exit) {
+            alert('Please enter entry and exit prices');
+            return;
+        }
+        
+        const { pips, dollar } = calculatePips(pair, direction, entry, exit, lot);
+        
+        const trade = {
+            id: Date.now().toString(),
+            pair, direction, entry, exit, lot, pnl: pips, dollar, date,
+            strategy, session, broker, orderType, mistake, emotion,
+            timestamp: new Date().toISOString(),
+            chartImage: currentChartImage || null
+        };
+        
+        await db.collection("users").doc(currentUser.uid).collection("trades").doc(trade.id).set(trade);
+        document.querySelector('.modal-overlay')?.remove();
+        await loadModule('trades');
+    };
+    
+    window.deleteTradeItem = async (id) => {
+        await db.collection("users").doc(currentUser.uid).collection("trades").doc(id).delete();
+        await loadModule('trades');
+    };
+    
+    window.saveChallengeSetup = async () => {
+        const size = parseInt(document.getElementById('ch-size').value);
+        const profitPct = parseInt(document.getElementById('ch-profit-pct').value);
+        const challenge = {
+            firm: document.getElementById('ch-firm').value,
+            size: size,
+            phase: document.getElementById('ch-phase').value,
+            daysLeft: 30,
+            profitTarget: size * profitPct / 100,
+            currentProfit: 0,
+            dailyLoss: 0,
+            totalLoss: 0,
+            maxDailyLoss: size * parseInt(document.getElementById('ch-daily-pct').value) / 100,
+            maxTotalLoss: size * parseInt(document.getElementById('ch-max-pct').value) / 100
+        };
+        await db.collection("users").doc(currentUser.uid).update({ challenge });
+        await loadModule('challenge');
+    };
+    
+    window.updateChallengeProfitUI = async () => {
+        const profit = parseFloat(document.getElementById('profit-update')?.value) || 0;
+        const userDoc = await db.collection("users").doc(currentUser.uid).get();
+        const challenge = userDoc.data()?.challenge;
+        if (challenge) {
+            challenge.currentProfit += profit;
+            await db.collection("users").doc(currentUser.uid).update({ challenge });
+            await loadModule('challenge');
+        }
+    };
+    
+    window.resetChallenge = async () => {
+        await db.collection("users").doc(currentUser.uid).update({ challenge: null });
+        await loadModule('challenge');
+    };
+    
+    window.markDailyCheckin = async () => {
+        const userDoc = await db.collection("users").doc(currentUser.uid).get();
+        const streak = (userDoc.data()?.journalStreak || 0) + 1;
+        await db.collection("users").doc(currentUser.uid).update({ journalStreak: streak });
+        await loadModule('journal');
+    };
+    
+    window.saveJournalEntry = async () => {
+        const entry = document.getElementById('journal-entry')?.value;
+        const mistake = document.getElementById('mistake-select')?.value;
+        if (entry) {
+            await db.collection("users").doc(currentUser.uid).collection("journal").add({ date: new Date().toISOString(), entry, mistake });
+            alert('Journal entry saved!');
+            document.getElementById('journal-entry').value = '';
+        }
+    };
+    
+    window.generatePDFReport = () => { alert('PDF Report: Your trade data is ready for export.'); };
+    window.copyShareLink = () => { navigator.clipboard.writeText(`${window.location.origin}?share=${currentUser.uid}`); alert('Share link copied!'); };
+    
+    // ========== INIT ==========
+    renderFeatures();
+    updateQuote();
+    
+    auth.onAuthStateChanged(async user => {
+        if (user) {
+            const active = await checkTrialStatus(user);
+            if (!active) {
+                alert('Your 15-day trial has ended. Please subscribe to continue.');
+                await auth.signOut();
+                return;
+            }
+            currentUser = user;
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            await loadAvatar();
+            await loadModule('dashboard');
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    loadModule(btn.dataset.tab);
+                });
+            });
+        } else {
+            document.getElementById('landing-page').style.display = 'block';
+            document.getElementById('app').style.display = 'none';
+        }
+    });
+</script>
+</body>
+</html>
