@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault | Elite Trading Journal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+        }
+        
+        .hero-content {
+            max-width: 900px;
+        }
+        
+        .hero-badge {
+            display: inline-block;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            margin-bottom: 2rem;
+        }
+        
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff, #a78bfa, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+            margin-top: 3rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 60px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .feature-card {
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+        }
+        
+        .rank-preview {
+            background: linear-gradient(135deg, #111827, #1e1b4b);
+            border-radius: 32px;
+            padding: 3rem;
+            margin: 3rem auto;
+            max-width: 1000px;
+            text-align: center;
+        }
+        
+        .rank-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .rank-item {
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+        
+        .rank-item:hover {
+            transform: scale(1.05);
+            background: rgba(139, 92, 246, 0.2);
+        }
+        
+        .rank-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .cta-section {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.05));
+            border-radius: 48px;
+            margin: 3rem auto;
+            max-width: 800px;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .stats-bar { gap: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo" onclick="location.href='index.html'">
+            <i class="fas fa-chart-line"></i> Trade Vault
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="dashboard.html">📝 Log Trade</a>
+            <a href="analytics.html">📊 Analytics</a>
+            <a href="propfirm.html">🎯 Prop Firm</a>
+            <a href="profile.html">👤 Profile</a>
+            <a href="pricing.html">💰 Pricing</a>
+            <button class="btn-login" onclick="openModal()">Login</button>
+            <button class="btn-trial" onclick="location.href='pricing.html'">Start Free Trial</button>
+        </div>
+        <div class="mobile-menu" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-chart-line"></i> Trusted by 500+ Traders
+            </div>
+            <h1>Level Up Your Trading<br>With The Ultimate Journal</h1>
+            <p>Track every trade, master your psychology, and climb the ranks from Beginner to Elite Master. The only trading journal you'll ever need.</p>
+            <div class="hero-buttons">
+                <button class="btn-trial" style="padding: 14px 32px;" onclick="location.href='pricing.html'">
+                    <i class="fas fa-gem"></i> Start 15-Day Free Trial
+                </button>
+                <button class="btn-secondary" style="padding: 14px 32px;" onclick="scrollToFeatures()">
+                    Explore Features <i class="fas fa-arrow-down"></i>
+                </button>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value">15+</div>
+                    <div class="stat-label">Advanced Features</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">Rank Tiers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">50+</div>
+                    <div class="stat-label">Rank Stages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">₦5K</div>
+                    <div class="stat-label">One-Time Payment</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" style="padding: 4rem 2rem;">
+        <h2 class="stat-value" style="text-align: center; font-size: 2.5rem; margin-bottom: 2rem;">Everything You Need to Succeed</h2>
+        <div class="features-grid">
+            <div class="feature-card" onclick="location.href='dashboard.html'">
+                <div class="feature-icon"><i class="fas fa-pen"></i></div>
+                <h3>Log Trades</h3>
+                <p>Entry/exit, strategy, emotions, mistakes, and auto pip/PnL calculation</p>
+            </div>
+            <div class="feature-card" onclick="location.href='analytics.html'">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>Equity Curve</h3>
+                <p>Visualize your performance with real-time charts and consistency scores</p>
+            </div>
+            <div class="feature-card" onclick="location.href='analytics.html'">
+                <div class="feature-icon"><i class="fas fa-trophy"></i></div>
+                <h3>Rank System</h3>
+                <p>Win = +1 star • Loss = -1 star • 6 ranks with 50+ stages</p>
+            </div>
+            <div class="feature-card" onclick="location.href='dashboard.html'">
+                <div class="feature-icon"><i class="fas fa-calculator"></i></div>
+                <h3>R:R Calculator</h3>
+                <p>Auto position sizing and risk-to-reward calculator built-in</p>
+            </div>
+            <div class="feature-card" onclick="location.href='dashboard.html'">
+                <div class="feature-icon"><i class="fas fa-image"></i></div>
+                <h3>Image Upload</h3>
+                <p>Save chart screenshots directly with your trade notes</p>
+            </div>
+            <div class="feature-card" onclick="location.href='propfirm.html'">
+                <div class="feature-icon"><i class="fas fa-building"></i></div>
+                <h3>Prop Firm Tracker</h3>
+                <p>FTMO, MyForexFunds, daily loss & drawdown alerts</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rank Preview -->
+    <section class="rank-preview">
+        <h2 style="font-size: 1.8rem; margin-bottom: 1rem;">Climb the Ranks</h2>
+        <div class="rank-container">
+            <div class="rank-item"><div class="rank-icon">🌱</div><div class="rank-name">Beginner</div><div class="stars-container"><i class="fas fa-star star filled"></i><i class="fas fa-star star filled"></i><i class="fas fa-star star filled"></i></div></div>
+            <div class="rank-item"><div class="rank-icon">⚙️</div><div class="rank-name">Intermediate</div><div class="stars-container"><i class="fas fa-star star filled"></i><i class="fas fa-star star filled"></i><i class="fas fa-star star filled"></i></div></div>
+            <div class="rank-item"><div class="rank-icon">⚔️</div><div class="rank-name">Advanced</div><div class="stars-container"><i class="fas fa-star star filled"></i><i class="fas fa-star star filled"></i><i class="fas fa-star star filled"></i></div></div>
+            <div class="rank-item"><div class="rank-icon">👑</div><div class="rank-name">Elite</div><div class="stars-container"><i class="fas fa-star star filled"></i><i class="fas fa-star star filled"></i><i class="fas fa-star star"></i><i class="fas fa-star star"></i></div></div>
+            <div class="rank-item"><div class="rank-icon">🐉</div><div class="rank-name">Master</div><div class="stars-container"><i class="fas fa-star star filled"></i><i class="fas fa-star star"></i><i class="fas fa-star star"></i></div></div>
+            <div class="rank-item"><div class="rank-icon">🌟</div><div class="rank-name">Elite Master</div><div class="stars-container"><i class="fas fa-star star filled"></i><i class="fas fa-star star"></i><i class="fas fa-star star"></i></div></div>
+        </div>
+        <p style="margin-top: 2rem; color: var(--text-muted);">
+            🎯 Each win earns a star • Each loss costs a star • Cannot go below zero
+        </p>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-section">
+        <h2>Ready to Master Your Trading?</h2>
+        <p style="margin: 1rem 0;">Join 500+ traders who are leveling up with Trade Vault</p>
+        <button class="btn-trial" style="padding: 14px 32px;" onclick="location.href='pricing.html'">
+            Start Your 15-Day Free Trial →
+        </button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Trade Vault</h4>
+                <p>Elite Trading Journal for Serious Traders</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="dashboard.html">Log Trade</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="propfirm.html">Prop Firm</a>
+                <a href="profile.html">Profile</a>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p><i class="fas fa-phone"></i> Opay: 8112401459</p>
+                <p><i class="fas fa-user"></i> Martin segun Michael</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024 Trade Vault. Master your trading journey.</p>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-chart-line"></i> Trade Vault</h2>
+                <i class="fas fa-times modal-close" onclick="closeModal()"></i>
+            </div>
+            <div class="tabs">
+                <div class="tab active" onclick="switchModalTab('login')">Login</div>
+                <div class="tab" onclick="switchModalTab('register')">Register</div>
+            </div>
+            <div id="modalLogin" class="form-container active">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="modalLoginEmail" class="form-control" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="modalLoginPassword" class="form-control" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="modalLogin()">Login</button>
+                <button class="btn btn-secondary" style="width: 100%;" onclick="modalGoogleLogin()"><i class="fab fa-google"></i> Continue with Google</button>
+                <p id="modalLoginError" style="color: var(--danger); margin-top: 10px;"></p>
+            </div>
+            <div id="modalRegister" class="form-container">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="modalRegName" class="form-control" placeholder="Enter your name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="modalRegEmail" class="form-control" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="modalRegPassword" class="form-control" placeholder="Create a password">
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="modalRegister()">Start Free Trial</button>
+                <p id="modalRegError" style="color: var(--danger); margin-top: 10px;"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.width = Math.random() * 4 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = Math.random() * 10 + 5 + 's';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        gsap.from('.hero-content', { opacity: 0, y: 50, duration: 1, ease: 'power3.out' });
+        gsap.from('.feature-card', { opacity: 0, y: 30, stagger: 0.1, duration: 0.8, scrollTrigger: { trigger: '#features', start: 'top 80%' } });
+
+        function scrollToFeatures() {
+            document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function toggleMobileMenu() {
+            document.querySelector('.nav-links').classList.toggle('show');
+        }
+
+        function openModal() {
+            document.getElementById('authModal').style.display = 'flex';
+            gsap.from('.modal-content', { scale: 0.8, opacity: 0, duration: 0.3 });
+        }
+
+        function closeModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        function switchModalTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
+            if (tab === 'login') {
+                document.querySelector('.tab:first-child').classList.add('active');
+                document.getElementById('modalLogin').classList.add('active');
+            } else {
+                document.querySelector('.tab:last-child').classList.add('active');
+                document.getElementById('modalRegister').classList.add('active');
+            }
+        }
+
+        async function modalRegister() {
+            const name = document.getElementById('modalRegName').value;
+            const email = document.getElementById('modalRegEmail').value;
+            const pass = document.getElementById('modalRegPassword').value;
+            if (!name || !email || !pass) {
+                document.getElementById('modalRegError').innerText = 'All fields required';
+                return;
+            }
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                await cred.user.updateProfile({ displayName: name });
+                const trialEnd = new Date();
+                trialEnd.setDate(trialEnd.getDate() + 15);
+                await db.collection('users').doc(cred.user.uid).set({
+                    name, email, trialEnd: trialEnd.toISOString(), paidUntil: null,
+                    totalWins: 0, totalLosses: 0, createdAt: new Date().toISOString()
+                });
+                alert('✅ 15-day free trial activated!');
+                window.location.href = 'dashboard.html';
+            } catch(e) {
+                document.getElementById('modalRegError').innerText = e.message;
+            }
+        }
+
+        async function modalLogin() {
+            const email = document.getElementById('modalLoginEmail').value;
+            const pass = document.getElementById('modalLoginPassword').value;
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+            } catch(e) {
+                document.getElementById('modalLoginError').innerText = e.message;
+            }
+        }
+
+        async function modalGoogleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                const result = await auth.signInWithPopup(provider);
+                const userDoc = await db.collection('users').doc(result.user.uid).get();
+                if (!userDoc.exists) {
+                    const trialEnd = new Date();
+                    trialEnd.setDate(trialEnd.getDate() + 15);
+                    await db.collection('users').doc(result.user.uid).set({
+                        name: result.user.displayName, email: result.user.email,
+                        trialEnd: trialEnd.toISOString(), paidUntil: null,
+                        totalWins: 0, totalLosses: 0, createdAt: new Date().toISOString()
+                    });
+                }
+            } catch(e) {
+                document.getElementById('modalLoginError').innerText = e.message;
+            }
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const hasSubscription = await checkSubscription(user.uid);
+                if (hasSubscription) window.location.href = 'dashboard.html';
+            }
+        });
+
+        window.scrollToFeatures = scrollToFeatures;
+        window.toggleMobileMenu = toggleMobileMenu;
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.switchModalTab = switchModalTab;
+        window.modalRegister = modalRegister;
+        window.modalLogin = modalLogin;
+        window.modalGoogleLogin = modalGoogleLogin;
+    </script>
+</body>
+</html>
