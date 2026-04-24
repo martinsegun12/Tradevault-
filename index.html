@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault | Professional Trading Journal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .landing {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0f1e 0%, #1a0f2e 50%, #0a0f1e 100%);
+        }
+        .hero {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .hero h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf, #e879f9);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(123,44,191,0.3);
+        }
+        .feature-card i {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .auth-container {
+            max-width: 450px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(15,23,42,0.9);
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(123,44,191,0.3);
+        }
+        .auth-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 40px;
+            transition: all 0.2s;
+        }
+        .auth-tab.active {
+            background: linear-gradient(90deg, #7b2cbf, #00d4ff);
+        }
+        .auth-form {
+            display: none;
+        }
+        .auth-form.active {
+            display: block;
+        }
+        .payment-info {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-radius: 16px;
+            padding: 1rem;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="landing">
+    <div class="hero">
+        <h1><i class="fas fa-vault"></i> Trade Vault</h1>
+        <p style="margin-top: 1rem;">Your Elite Trading Journal • Track • Analyze • Master the Markets</p>
+    </div>
+    
+    <div class="features">
+        <div class="feature-card"><i class="fas fa-chart-line"></i><h3>Equity Curve</h3><p>Visualize your performance</p></div>
+        <div class="feature-card"><i class="fas fa-trophy"></i><h3>Rank System</h3><p>6 ranks with 10 stages each</p></div>
+        <div class="feature-card"><i class="fas fa-calculator"></i><h3>R:R Calculator</h3><p>Auto position sizing</p></div>
+        <div class="feature-card"><i class="fas fa-cloud-upload-alt"></i><h3>Image Upload</h3><p>Save chart screenshots</p></div>
+        <div class="feature-card"><i class="fas fa-chart-pie"></i><h3>Prop Firm Tracker</h3><p>FTMO, MFF & more</p></div>
+        <div class="feature-card"><i class="fas fa-download"></i><h3>CSV Export</h3><p>Backup your data</p></div>
+    </div>
+    
+    <div class="auth-container" id="authContainer">
+        <div class="auth-tabs">
+            <div class="auth-tab active" onclick="switchTab('login')">Login</div>
+            <div class="auth-tab" onclick="switchTab('register')">15-Day Free Trial</div>
+        </div>
+        
+        <div id="loginForm" class="auth-form active">
+            <input type="email" id="loginEmail" placeholder="Email" style="margin-bottom: 1rem;">
+            <input type="password" id="loginPassword" placeholder="Password" style="margin-bottom: 1rem;">
+            <button class="btn" style="width: 100%; margin-bottom: 1rem;" onclick="loginEmail()">Login</button>
+            <button class="btn" style="width: 100%; background: #4285F4;" onclick="loginGoogle()"><i class="fab fa-google"></i> Continue with Google</button>
+            <p id="loginError" style="color: #ef4444; margin-top: 1rem;"></p>
+        </div>
+        
+        <div id="registerForm" class="auth-form">
+            <input type="text" id="regName" placeholder="Full Name" style="margin-bottom: 1rem;">
+            <input type="email" id="regEmail" placeholder="Email" style="margin-bottom: 1rem;">
+            <input type="password" id="regPassword" placeholder="Password" style="margin-bottom: 1rem;">
+            <button class="btn" style="width: 100%;" onclick="registerEmail()">Start 15-Day Free Trial</button>
+            <p id="regError" style="color: #ef4444; margin-top: 1rem;"></p>
+        </div>
+        
+        <div id="paymentSection" style="display: none; margin-top: 2rem;">
+            <div class="payment-info">
+                <h4>💰 One-Time Payment: ₦5,000</h4>
+                <p>Pay via <strong>Opay</strong> to:</p>
+                <p style="font-size: 1.2rem;"><strong>Martin segun Michael</strong></p>
+                <p style="font-size: 1.5rem;"><strong>8112401459</strong></p>
+                <input type="text" id="paymentRef" placeholder="Transaction Reference" style="margin: 1rem 0;">
+                <button class="btn" onclick="verifyPayment()">Verify Payment</button>
+                <p id="paymentStatus" style="margin-top: 0.5rem;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+    function switchTab(tab) {
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+        if (tab === 'login') {
+            document.querySelector('.auth-tab:first-child').classList.add('active');
+            document.getElementById('loginForm').classList.add('active');
+        } else {
+            document.querySelector('.auth-tab:last-child').classList.add('active');
+            document.getElementById('registerForm').classList.add('active');
+        }
+        gsap.from('.auth-form.active', { opacity: 0, y: 20, duration: 0.4 });
+    }
+    
+    async function registerEmail() {
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const pass = document.getElementById('regPassword').value;
+        if (!name || !email || !pass) {
+            document.getElementById('regError').innerText = 'All fields required';
+            return;
+        }
+        try {
+            const cred = await auth.createUserWithEmailAndPassword(email, pass);
+            await cred.user.updateProfile({ displayName: name });
+            const trialEnd = new Date();
+            trialEnd.setDate(trialEnd.getDate() + 15);
+            await db.collection('users').doc(cred.user.uid).set({
+                name, email, trialEnd: trialEnd.toISOString(), paidUntil: null,
+                totalWins: 0, totalLosses: 0, createdAt: new Date().toISOString()
+            });
+            alert('✅ 15-day free trial activated!');
+            window.location.href = 'dashboard.html';
+        } catch(e) {
+            document.getElementById('regError').innerText = e.message;
+        }
+    }
+    
+    async function loginEmail() {
+        const email = document.getElementById('loginEmail').value;
+        const pass = document.getElementById('loginPassword').value;
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+        } catch(e) {
+            document.getElementById('loginError').innerText = e.message;
+        }
+    }
+    
+    async function loginGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            const result = await auth.signInWithPopup(provider);
+            const userDoc = await db.collection('users').doc(result.user.uid).get();
+            if (!userDoc.exists) {
+                const trialEnd = new Date();
+                trialEnd.setDate(trialEnd.getDate() + 15);
+                await db.collection('users').doc(result.user.uid).set({
+                    name: result.user.displayName,
+                    email: result.user.email,
+                    trialEnd: trialEnd.toISOString(),
+                    paidUntil: null,
+                    totalWins: 0,
+                    totalLosses: 0,
+                    createdAt: new Date().toISOString()
+                });
+            }
+        } catch(e) {
+            document.getElementById('loginError').innerText = e.message;
+        }
+    }
+    
+    async function verifyPayment() {
+        const ref = document.getElementById('paymentRef').value;
+        if (!ref) {
+            document.getElementById('paymentStatus').innerHTML = 'Enter transaction reference';
+            return;
+        }
+        const user = auth.currentUser;
+        if (user) {
+            await db.collection('users').doc(user.uid).update({
+                paidUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
+                paymentRef: ref
+            });
+            document.getElementById('paymentStatus').innerHTML = '✅ Payment verified! Redirecting...';
+            setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+        }
+    }
+    
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            const hasSubscription = await checkSubscription(user.uid);
+            if (hasSubscription) {
+                window.location.href = 'dashboard.html';
+            } else {
+                document.getElementById('paymentSection').style.display = 'block';
+                document.querySelector('.auth-tabs').style.display = 'none';
+                document.querySelectorAll('.auth-form').forEach(f => f.style.display = 'none');
+            }
+        }
+    });
+    
+    window.switchTab = switchTab;
+    window.registerEmail = registerEmail;
+    window.loginEmail = loginEmail;
+    window.loginGoogle = loginGoogle;
+    window.verifyPayment = verifyPayment;
+</script>
+</body>
+</html>
