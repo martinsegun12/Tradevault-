@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prop Firm Tracker - Trade Vault</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <i class="fas fa-vault"></i>
+                    <span>Trade Vault</span>
+                </div>
+            </div>
+
+            <div class="sidebar-user">
+                <div class="user-avatar">T</div>
+                <div class="user-info">
+                    <div class="user-name">Trader</div>
+                    <div class="user-status">Active</div>
+                </div>
+            </div>
+            <div id="sidebar-rank" style="padding: 0 16px 12px;"></div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <a href="dashboard.html" class="nav-item">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="journal.html" class="nav-item">
+                        <i class="fas fa-book"></i>
+                        <span>Trade Journal</span>
+                    </a>
+                    <a href="analytics.html" class="nav-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="rankings.html" class="nav-item">
+                        <i class="fas fa-trophy"></i>
+                        <span>Rankings</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Tools</div>
+                    <a href="propfirm.html" class="nav-item active">
+                        <i class="fas fa-building"></i>
+                        <span>Prop Firm Tracker</span>
+                    </a>
+                    <a href="strategies.html" class="nav-item">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>Strategy Notes</span>
+                    </a>
+                    <a href="profile.html" class="nav-item">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="trial-info">
+                    <p>15 days left in free trial</p>
+                    <div class="trial-bar">
+                        <div class="trial-bar-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+                <button class="btn-danger btn-full" onclick="signOut()">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Prop Firm Tracker</h1>
+                    <p>Monitor your funded account challenges</p>
+                </div>
+                <div class="top-actions">
+                    <button class="btn-primary" onclick="openPropModal()">
+                        <i class="fas fa-plus"></i> New Challenge
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Challenges -->
+            <div id="prop-challenges">
+                <div class="content-card" style="text-align: center; padding: 60px;">
+                    <i class="fas fa-building" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px; display: block;"></i>
+                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 8px;">No active challenges</p>
+                    <p style="font-size: 14px; color: var(--text-muted);">Add your first prop firm challenge to start tracking</p>
+                </div>
+            </div>
+
+            <!-- Prop Firm Rules Reference -->
+            <div class="content-card">
+                <div class="card-header-flex">
+                    <div>
+                        <h3>Prop Firm Rules Reference</h3>
+                        <p>Quick reference for popular prop firms</p>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                    <div style="background: var(--bg-input); padding: 16px; border-radius: var(--radius-sm);">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: var(--primary);">FTMO</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+                            <div>Phase 1: 10% Profit</div>
+                            <div>Phase 2: 5% Profit</div>
+                            <div>Max Daily Loss: 5%</div>
+                            <div>Max Total Loss: 10%</div>
+                            <div>Min Days: 4-10</div>
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-input); padding: 16px; border-radius: var(--radius-sm);">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: var(--secondary);">MyForexFunds</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+                            <div>Phase 1: 8% Profit</div>
+                            <div>Phase 2: 5% Profit</div>
+                            <div>Max Daily Loss: 5%</div>
+                            <div>Max Total Loss: 12%</div>
+                            <div>Min Days: 5</div>
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-input); padding: 16px; border-radius: var(--radius-sm);">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: var(--accent);">The5ers</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+                            <div>Phase 1: 6% Profit</div>
+                            <div>Phase 2: 4% Profit</div>
+                            <div>Max Daily Loss: 4%</div>
+                            <div>Max Total Loss: 8%</div>
+                            <div>Min Days: 3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Challenge Modal -->
+    <div id="prop-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" onclick="closePropModal()">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h2 style="margin-bottom: 8px;">New Prop Firm Challenge</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Track your progress to funded status</p>
+
+            <form id="prop-form" onsubmit="saveChallenge(event)">
+                <div class="form-row">
+                    <div>
+                        <label class="form-label">Prop Firm</label>
+                        <select class="form-select" id="prop-firm" required>
+                            <option value="">Select firm...</option>
+                            <option value="FTMO">FTMO</option>
+                            <option value="MyForexFunds">MyForexFunds</option>
+                            <option value="The5ers">The5ers</option>
+                            <option value="TrueForexFunds">True Forex Funds</option>
+                            <option value="FundedNext">FundedNext</option>
+                            <option value="ApexTrader">Apex Trader Funding</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Account Size</label>
+                        <select class="form-select" id="prop-size" required>
+                            <option value="">Select size...</option>
+                            <option value="10000">$10,000</option>
+                            <option value="25000">$25,000</option>
+                            <option value="50000">$50,000</option>
+                            <option value="100000">$100,000</option>
+                            <option value="200000">$200,000</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <label class="form-label">Current Phase</label>
+                        <select class="form-select" id="prop-phase" required>
+                            <option value="phase1">Phase 1 (Challenge)</option>
+                            <option value="phase2">Phase 2 (Verification)</option>
+                            <option value="funded">Funded Account</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Start Date</label>
+                        <input type="date" id="prop-start" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <label class="form-label">Profit Target (%)</label>
+                        <input type="number" id="prop-target" step="0.1" value="10" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Max Daily Loss (%)</label>
+                        <input type="number" id="prop-daily-loss" step="0.1" value="5" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <label class="form-label">Max Total Loss (%)</label>
+                        <input type="number" id="prop-total-loss" step="0.1" value="10" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Current Profit/Loss (%)</label>
+                        <input type="number" id="prop-current" step="0.1" value="0" required>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-textarea" id="prop-notes" placeholder="Any notes about this challenge..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary btn-lg btn-full">
+                    <i class="fas fa-save"></i> Save Challenge
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Paywall Modal -->
+    <div id="paywall-modal" class="modal-overlay">
+        <div class="modal-content paywall-modal">
+            <div class="paywall-icon"><i class="fas fa-crown"></i></div>
+            <h2>Upgrade to Trade Vault Pro</h2>
+            <p>Your 15-day free trial has ended. Upgrade now to keep accessing your journal.</p>
+            <div class="pricing-price">
+                <span class="currency">₦</span>
+                <span class="amount">5,000</span>
+                <span class="period">one-time</span>
+            </div>
+            <div class="payment-details">
+                <div class="payment-row"><span>Bank</span><strong>OPAY</strong></div>
+                <div class="payment-row"><span>Account Name</span><strong>Martin Segun Michael</strong></div>
+                <div class="payment-row"><span>Account Number</span><strong class="copy-text" onclick="copyToClipboard('8112401459')">8112401459 <i class="fas fa-copy"></i></strong></div>
+            </div>
+            <button class="btn-primary btn-lg btn-full" onclick="requestActivation()">
+                <i class="fas fa-paper-plane"></i> I've Paid — Activate My Account
+            </button>
+            <p class="payment-note">Your account will be activated within 24 hours after payment verification.</p>
+        </div>
+    </div>
+
+    <script src="../js/firebase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/ranking.js"></script>
+    <script src="../js/propfirm.js"></script>
+</body>
+</html>
