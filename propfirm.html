@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault | Prop Firm Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+    <div class="sidebar">
+        <div class="logo">🏦 Trade Vault</div>
+        <div class="profile-section" id="profileSection">
+            <div class="profile-pic" id="profilePic"><i class="fas fa-user"></i></div>
+            <h4 id="userName">Trader</h4>
+        </div>
+        <div class="rank-card" id="rankCard">
+            <div class="rank-name" id="rankName">Beginner 1</div>
+            <div class="stars" id="starContainer"></div>
+            <div class="rank-badge" id="rankBadge">🌱 Bronze Seed</div>
+        </div>
+        <div class="nav-item" onclick="location.href='dashboard.html'">📝 Log Trade</div>
+        <div class="nav-item" onclick="location.href='analytics.html'">📊 Analytics</div>
+        <div class="nav-item active" onclick="location.href='propfirm.html'">🎯 Prop Firm</div>
+        <div class="nav-item" onclick="location.href='profile.html'">👤 Profile</div>
+        <div class="nav-item" onclick="signOut()">🚪 Sign Out</div>
+    </div>
+    
+    <div class="main">
+        <!-- Prop Firm Selector -->
+        <div class="card">
+            <h3><i class="fas fa-building"></i> Prop Firm Challenge Tracker</h3>
+            <div class="flex">
+                <div class="form-group" style="flex:2">
+                    <label>Select Firm</label>
+                    <select id="propFirm">
+                        <option value="FTMO">FTMO</option>
+                        <option value="MyForexFunds">MyForexFunds</option>
+                        <option value="The Funded Trader">The Funded Trader</option>
+                        <option value="E8 Funding">E8 Funding</option>
+                        <option value="FundedNext">FundedNext</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Account Size ($)</label>
+                    <input type="number" id="accountSize" placeholder="100000">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Challenge Progress -->
+        <div class="grid">
+            <div class="card">
+                <h3>🎯 Profit Target</h3>
+                <div class="stat-value" id="profitTarget">0%</div>
+                <div class="progress-bar" style="height: 8px; background: #1e293b; border-radius: 10px; margin-top: 10px;">
+                    <div id="profitProgress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #00d4ff); border-radius: 10px;"></div>
+                </div>
+                <div id="profitDetails" class="stat-label">$0 / $0</div>
+            </div>
+            <div class="card">
+                <h3>⚠️ Max Daily Loss</h3>
+                <div class="stat-value" id="dailyLossLeft">0%</div>
+                <div class="progress-bar" style="height: 8px; background: #1e293b; border-radius: 10px; margin-top: 10px;">
+                    <div id="dailyLossProgress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #ef4444, #f59e0b); border-radius: 10px;"></div>
+                </div>
+                <div id="dailyLossDetails" class="stat-label">$0 used</div>
+            </div>
+            <div class="card">
+                <h3>📉 Max Drawdown</h3>
+                <div class="stat-value" id="drawdownLeft">0%</div>
+                <div class="progress-bar" style="height: 8px; background: #1e293b; border-radius: 10px; margin-top: 10px;">
+                    <div id="drawdownProgress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); border-radius: 10px;"></div>
+                </div>
+                <div id="drawdownDetails" class="stat-label">$0 used</div>
+            </div>
+        </div>
+        
+        <!-- Update Form -->
+        <div class="card">
+            <h3><i class="fas fa-edit"></i> Update Challenge Stats</h3>
+            <div class="flex">
+                <div class="form-group" style="flex:1">
+                    <label>Current Profit ($)</label>
+                    <input type="number" id="currentProfit" placeholder="5000">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Today's Loss ($)</label>
+                    <input type="number" id="todayLoss" placeholder="0">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Max Drawdown Used ($)</label>
+                    <input type="number" id="drawdownUsed" placeholder="0">
+                </div>
+            </div>
+            <div class="flex">
+                <button class="btn" onclick="updateChallenge()"><i class="fas fa-save"></i> Update Challenge</button>
+                <button class="btn btn-secondary" onclick="resetChallenge()"><i class="fas fa-redo"></i> Reset</button>
+            </div>
+            <div id="challengeAlert" style="margin-top: 1rem;"></div>
+        </div>
+        
+        <!-- Payout Tracker -->
+        <div class="card">
+            <h3><i class="fas fa-money-bill-wave"></i> Payout Tracker</h3>
+            <div class="flex">
+                <div class="form-group" style="flex:1">
+                    <label>Total Payouts Received ($)</label>
+                    <input type="number" id="totalPayouts" placeholder="0">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Next Payout Expected ($)</label>
+                    <input type="number" id="nextPayout" placeholder="0">
+                </div>
+                <button class="btn" onclick="savePayouts()">Save</button>
+            </div>
+            <div id="payoutHistory"></div>
+        </div>
+        
+        <!-- Rule Violation Alerts -->
+        <div class="card" id="alertsCard">
+            <h3><i class="fas fa-bell"></i> Rule Violation Alerts</h3>
+            <div id="ruleAlerts"></div>
+        </div>
+    </div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+    let currentUser = null;
+    
+    const FIRM_RULES = {
+        'FTMO': { profitTarget: 0.10, dailyLoss: 0.05, maxDrawdown: 0.10 },
+        'MyForexFunds': { profitTarget: 0.08, dailyLoss: 0.05, maxDrawdown: 0.12 },
+        'The Funded Trader': { profitTarget: 0.09, dailyLoss: 0.04, maxDrawdown: 0.10 },
+        'E8 Funding': { profitTarget: 0.08, dailyLoss: 0.05, maxDrawdown: 0.10 },
+        'FundedNext': { profitTarget: 0.10, dailyLoss: 0.06, maxDrawdown: 0.12 }
+    };
+    
+    async function loadChallengeData() {
+        if (!currentUser) return;
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const data = userDoc.data();
+        
+        if (data?.propFirm) {
+            document.getElementById('propFirm').value = data.propFirm.firm || 'FTMO';
+            document.getElementById('accountSize').value = data.propFirm.accountSize || 100000;
+            document.getElementById('currentProfit').value = data.propFirm.profit || 0;
+            document.getElementById('drawdownUsed').value = data.propFirm.drawdownUsed || 0;
+            document.getElementById('totalPayouts').value = data.propFirm.totalPayouts || 0;
+        }
+        
+        updateDisplay();
+    }
+    
+    function updateDisplay() {
+        const firm = document.getElementById('propFirm').value;
+        const rules = FIRM_RULES[firm] || FIRM_RULES['FTMO'];
+        const accountSize = parseFloat(document.getElementById('accountSize').value) || 100000;
+        const currentProfit = parseFloat(document.getElementById('currentProfit').value) || 0;
+        const todayLoss = parseFloat(document.getElementById('todayLoss').value) || 0;
+        const drawdownUsed = parseFloat(document.getElementById('drawdownUsed').value) || 0;
+        
+        const profitTargetAmount = accountSize * rules.profitTarget;
+        const profitPercent = (currentProfit / profitTargetAmount * 100).toFixed(1);
+        document.getElementById('profitTarget').innerHTML = `${profitPercent}%`;
+        document.getElementById('profitProgress').style.width = `${Math.min(profitPercent, 100)}%`;
+        document.getElementById('profitDetails').innerHTML = `$${currentProfit.toLocaleString()} / $${profitTargetAmount.toLocaleString()}`;
+        
+        const dailyLossLimit = accountSize * rules.dailyLoss;
+        const dailyLossPercent = (todayLoss / dailyLossLimit * 100).toFixed(1);
+        const dailyLeft = dailyLossLimit - todayLoss;
+        document.getElementById('dailyLossLeft').innerHTML = `${dailyLossPercent}% used`;
+        document.getElementById('dailyLossProgress').style.width = `${Math.min(dailyLossPercent, 100)}%`;
+        document.getElementById('dailyLossProgress').style.background = todayLoss > dailyLossLimit * 0.8 ? '#ef4444' : '#f59e0b';
+        document.getElementById('dailyLossDetails').innerHTML = `$${todayLoss.toLocaleString()} / $${dailyLossLimit.toLocaleString()}`;
+        
+        const maxDrawdownAmount = accountSize * rules.maxDrawdown;
+        const drawdownPercent = (drawdownUsed / maxDrawdownAmount * 100).toFixed(1);
+        document.getElementById('drawdownLeft').innerHTML = `${drawdownPercent}% used`;
+        document.getElementById('drawdownProgress').style.width = `${Math.min(drawdownPercent, 100)}%`;
+        document.getElementById('drawdownDetails').innerHTML = `$${drawdownUsed.toLocaleString()} / $${maxDrawdownAmount.toLocaleString()}`;
+        
+        // Alerts
+        let alerts = [];
+        if (todayLoss > dailyLossLimit * 0.8) alerts.push(`⚠️ You're within ${((dailyLossLimit - todayLoss) / dailyLossLimit * 100).toFixed(0)}% of daily loss limit!`);
+        if (drawdownUsed > maxDrawdownAmount * 0.8) alerts.push(`🔴 Max drawdown alert! Only $${(maxDrawdownAmount - drawdownUsed).toFixed(0)} left.`);
+        if (currentProfit >= profitTargetAmount) alerts.push(`🎉 CONGRATULATIONS! You hit the profit target! Request payout now.`);
+        
+        const alertDiv = document.getElementById('ruleAlerts');
+        if (alerts.length) {
+            alertDiv.innerHTML = alerts.map(a => `<div class="alert alert-warning">${a}</div>`).join('');
+            gsap.from('#alertsCard', { scale: 1.02, duration: 0.5, repeat: 2, yoyo: true });
+        } else {
+            alertDiv.innerHTML = '<div class="alert alert-success">✅ All rules within limits. Keep trading!</div>';
+        }
+    }
+    
+    async function updateChallenge() {
+        if (!currentUser) return;
+        const firm = document.getElementById('propFirm').value;
+        const accountSize = parseFloat(document.getElementById('accountSize').value);
+        const profit = parseFloat(document.getElementById('currentProfit').value);
+        const todayLoss = parseFloat(document.getElementById('todayLoss').value);
+        const drawdownUsed = parseFloat(document.getElementById('drawdownUsed').value);
+        
+        await db.collection('users').doc(currentUser.uid).set({
+            propFirm: { firm, accountSize, profit, todayLoss, drawdownUsed, updatedAt: new Date().toISOString() }
+        }, { merge: true });
+        
+        updateDisplay();
+        document.getElementById('challengeAlert').innerHTML = '<div class="alert alert-success">✅ Challenge updated!</div>';
+        setTimeout(() => { document.getElementById('challengeAlert').innerHTML = ''; }, 2000);
+        gsap.from('#challengeAlert', { opacity: 0, y: -10, duration: 0.5 });
+    }
+    
+    async function resetChallenge() {
+        if (confirm('Reset all challenge progress? This cannot be undone.')) {
+            await db.collection('users').doc(currentUser.uid).set({
+                propFirm: { firm: 'FTMO', accountSize: 100000, profit: 0, todayLoss: 0, drawdownUsed: 0 }
+            }, { merge: true });
+            document.getElementById('currentProfit').value = 0;
+            document.getElementById('todayLoss').value = 0;
+            document.getElementById('drawdownUsed').value = 0;
+            updateDisplay();
+            document.getElementById('challengeAlert').innerHTML = '<div class="alert alert-info">🔄 Challenge reset</div>';
+        }
+    }
+    
+    async function savePayouts() {
+        if (!currentUser) return;
+        const totalPayouts = parseFloat(document.getElementById('totalPayouts').value) || 0;
+        await db.collection('users').doc(currentUser.uid).set({ propFirm: { totalPayouts } }, { merge: true });
+        document.getElementById('challengeAlert').innerHTML = '<div class="alert alert-success">✅ Payouts saved!</div>';
+    }
+    
+    document.getElementById('propFirm').addEventListener('change', updateDisplay);
+    document.getElementById('accountSize').addEventListener('input', updateDisplay);
+    document.getElementById('currentProfit').addEventListener('input', updateDisplay);
+    document.getElementById('todayLoss').addEventListener('input', updateDisplay);
+    document.getElementById('drawdownUsed').addEventListener('input', updateDisplay);
+    
+    async function loadProfile() {
+        if (!currentUser) return;
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const data = userDoc.data();
+        document.getElementById('userName').innerHTML = data?.name || currentUser.displayName || currentUser.email;
+        if (data?.profilePic) document.getElementById('profilePic').innerHTML = `<img src="${data.profilePic}">`;
+        
+        const info = getRankInfo(data?.totalWins || 0);
+        document.getElementById('rankName').innerHTML = `${info.rank} ${info.stage} ${info.config.icon}`;
+        document.getElementById('rankBadge').innerHTML = info.config.badge;
+        const container = document.getElementById('starContainer');
+        container.innerHTML = '';
+        for (let i = 0; i < info.config.starsPerStage; i++) {
+            const star = document.createElement('i');
+            star.className = `fa-star ${i < info.starsInStage ? 'fas star filled' : 'far star'}`;
+            container.appendChild(star);
+        }
+    }
+    
+    function signOut() { auth.signOut(); window.location.href = 'index.html'; }
+    
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            const hasSubscription = await checkSubscription(user.uid);
+            if (!hasSubscription) { alert('Subscription expired'); window.location.href = 'index.html'; }
+            await loadProfile();
+            await loadChallengeData();
+        } else { window.location.href = 'index.html'; }
+    });
+    
+    window.updateChallenge = updateChallenge;
+    window.resetChallenge = resetChallenge;
+    window.savePayouts = savePayouts;
+    window.signOut = signOut;
+</script>
+</body>
+</html>
