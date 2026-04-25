@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Dashboard | Trading Journal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-storage.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+            authDomain: "web-app-a36aa.firebaseapp.com",
+            projectId: "web-app-a36aa",
+            storageBucket: "web-app-a36aa.firebasestorage.app",
+            messagingSenderId: "873638679873",
+            appId: "1:873638679873:web:490942c8492e947b09bdc0",
+            measurementId: "G-P5F8PZES9P"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore();
+        const storage = getStorage();
+        
+        let currentUser = null;
+        let userData = null;
+        
+        // Star to rank mapping
+        const rankStars = {
+            1: 0, 2: 15, 3: 30, 4: 45, 5: 165, 6: 285, 7: 405, 8: 525
+        };
+        
+        const rankNames = {
+            1: "Novice Trader", 2: "Apprentice Trader", 3: "Master Trader",
+            4: "Elite Trader", 5: "Grandmaster Trader", 6: "Legend Trader",
+            7: "Titan Trader", 8: "Supreme Trader"
+        };
+        
+        function calculateRank(totalStars) {
+            if (totalStars < 15) return { level: 1, rank: rankNames[1] };
+            if (totalStars < 30) return { level: 2, rank: rankNames[2] };
+            if (totalStars < 45) return { level: 3, rank: rankNames[3] };
+            if (totalStars < 165) return { level: 4, rank: rankNames[4] };
+            if (totalStars < 285) return { level: 5, rank: rankNames[5] };
+            if (totalStars < 405) return { level: 6, rank: rankNames[6] };
+            if (totalStars < 525) return { level: 7, rank: rankNames[7] };
+            return { level: 8, rank: rankNames[8] };
+        }
+        
+        function calculateStage(totalStars, level) {
+            let starsInLevel = totalStars;
+            if (level >= 5) {
+                const baseStars = 165 + (level - 5) * 120;
+                starsInLevel = totalStars - baseStars;
+                const stage = Math.floor(starsInLevel / 20) + 1;
+                return { stage: Math.min(stage, 6), starsInStage: starsInLevel % 20, needed: 20 };
+            } else {
+                const baseStars = (level - 1) * 15;
+                starsInLevel = totalStars - baseStars;
+                const stage = Math.floor(starsInLevel / 5) + 1;
+                return { stage: Math.min(stage, 3), starsInStage: starsInLevel % 5, needed: 5 };
+            }
+        }
+        
+        async function updateUserRank() {
+            const rankInfo = calculateRank(userData.totalStars);
+            const stageInfo = calculateStage(userData.totalStars, rankInfo.level);
+            
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                level: rankInfo.level,
+                rank: rankInfo.rank,
+                stage: stageInfo.stage
+            });
+            
+            userData.level = rankInfo.level;
+            userData.rank = rankInfo.rank;
+            userData.stage = stageInfo.stage;
+            
+            renderRankBadge();
+            updateUI();
+        }
+        
+        async function addTrade(result, instrument = "EUR/USD", strategy = "Breakout", session = "London") {
+            const starChange = result === "Win" ? 1 : (result === "Loss" ? -1 : 0);
+            const newTotalStars = userData.totalStars + starChange;
+            const newMonthStars = userData.currentMonthStars + starChange;
+            
+            await addDoc(collection(db, "trades"), {
+                userId: currentUser.uid,
+                timestamp: new Date(),
+                instrument: instrument,
+                strategy: strategy,
+                session: session,
+                result: result,
+                starChange: starChange,
+                accountBalance: userData.totalPnl + (result === "Win" ? 1000 : (result === "Loss" ? -500 : 0)),
+                preTradeSetup: "Sample setup",
+                preTradeReason: "Sample reason"
+            });
+            
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                totalStars: newTotalStars,
+                currentMonthStars: newMonthStars,
+                totalPnl: userData.totalPnl + (result === "Win" ? 1000 : (result === "Loss" ? -500 : 0))
+            });
+            
+            userData.totalStars = newTotalStars;
+            userData.currentMonthStars = newMonthStars;
+            
+            await updateUserRank();
+            loadRecentTrades();
+            loadEquityCurve();
+        }
+        
+        async function loadUserData() {
+            const docRef = doc(db, "users", currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                userData = docSnap.data();
+                userData.totalStars = userData.totalStars || 0;
+                userData.currentMonthStars = userData.currentMonthStars || 0;
+                updateUI();
+                renderRankBadge();
+                loadRecentTrades();
+                loadEquityCurve();
+                loadStrategyPerformance();
+                loadInstrumentPerformance();
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('userName').innerText = userData.name || 'Trader';
+            document.getElementById('totalStars').innerText = userData.totalStars;
+            document.getElementById('monthStars').innerText = userData.currentMonthStars;
+            document.getElementById('consistencyScore').innerText = userData.consistencyScore || 0;
+            
+            const rankInfo = calculateRank(userData.totalStars);
+            const stageInfo = calculateStage(userData.totalStars, rankInfo.level);
+            const progressPercent = (stageInfo.starsInStage / stageInfo.needed) * 100;
+            document.getElementById('progressFill').style.width = progressPercent + '%';
+            document.getElementById('stageText').innerText = `Stage ${stageInfo.stage}/${rankInfo.level >= 5 ? 6 : 3} (${stageInfo.starsInStage}/${stageInfo.needed} stars)`;
+            
+            const fundingTab = document.getElementById('fundingTab');
+            if (rankInfo.level >= 4 && userData.accountType === 'participant') {
+                fundingTab.classList.remove('hidden');
+            } else {
+                fundingTab.classList.add('hidden');
+            }
+        }
+        
+        function renderRankBadge() {
+            const rankClass = userData.rank.toLowerCase().replace(/\s/g, '-').replace('trader', '').replace(/-$/, '');
+            const title = userData.rank.split(' ')[0].toUpperCase();
+            document.getElementById('rankBadge').innerHTML = `
+                <div class="rank-badge rank-${rankClass}">
+                    <div class="rank-title">${title}</div>
+                    <div class="rank-subtitle">TRADER</div>
+                </div>
+            `;
+        }
+        
+        async function loadRecentTrades() {
+            const q = query(collection(db, "trades"), where("userId", "==", currentUser.uid), orderBy("timestamp", "desc"), limit(10));
+            const snapshot = await getDocs(q);
+            const container = document.getElementById('recentTrades');
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-center">No trades yet. Click Win/Loss above!</p>';
+                return;
+            }
+            container.innerHTML = snapshot.docs.map(doc => {
+                const trade = doc.data();
+                const date = trade.timestamp?.toDate?.() || new Date();
+                return `
+                    <div class="history-trade-item ${trade.result === 'Win' ? 'trade-win' : 'trade-loss'}">
+                        <div><strong>${trade.instrument}</strong><br><small>${date.toLocaleDateString()}</small></div>
+                        <div>${trade.result === 'Win' ? '✅' : '❌'} ${trade.result}<br>${trade.starChange > 0 ? `+${trade.starChange}` : trade.starChange} ⭐</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function loadEquityCurve() {
+            const q = query(collection(db, "trades"), where("userId", "==", currentUser.uid), orderBy("timestamp", "asc"));
+            const snapshot = await getDocs(q);
+            const balances = [];
+            snapshot.forEach(doc => {
+                balances.push(doc.data().accountBalance || 0);
+            });
+            const ctx = document.getElementById('equityChart')?.getContext('2d');
+            if (ctx && balances.length > 0) {
+                new Chart(ctx, { type: 'line', data: { labels: balances.map((_, i) => i+1), datasets: [{ label: 'Equity', data: balances, borderColor: '#ffd700', fill: false }] } });
+            }
+        }
+        
+        async function loadStrategyPerformance() {
+            const q = query(collection(db, "trades"), where("userId", "==", currentUser.uid));
+            const snapshot = await getDocs(q);
+            const strategies = {};
+            snapshot.forEach(doc => {
+                const trade = doc.data();
+                if (!strategies[trade.strategy]) strategies[trade.strategy] = { wins: 0, total: 0 };
+                strategies[trade.strategy].total++;
+                if (trade.result === 'Win') strategies[trade.strategy].wins++;
+            });
+            const container = document.getElementById('strategyPerformance');
+            container.innerHTML = Object.entries(strategies).map(([name, data]) => `
+                <div>${name}: ${((data.wins/data.total)*100).toFixed(0)}% (${data.wins}/${data.total})</div>
+            `).join('');
+        }
+        
+        async function loadInstrumentPerformance() {
+            const q = query(collection(db, "trades"), where("userId", "==", currentUser.uid));
+            const snapshot = await getDocs(q);
+            const instruments = {};
+            snapshot.forEach(doc => {
+                const trade = doc.data();
+                if (!instruments[trade.instrument]) instruments[trade.instrument] = { pnl: 0 };
+                instruments[trade.instrument].pnl += trade.result === 'Win' ? 1000 : (trade.result === 'Loss' ? -500 : 0);
+            });
+            const container = document.getElementById('instrumentPerformance');
+            container.innerHTML = Object.entries(instruments).map(([name, data]) => `
+                <div>${name}: ₦${data.pnl.toLocaleString()}</div>
+            `).join('');
+        }
+        
+        async function loadHistoryByDate() {
+            const date = document.getElementById('calendarPicker').value;
+            if (!date) return;
+            const start = new Date(date); start.setHours(0,0,0,0);
+            const end = new Date(date); end.setHours(23,59,59,999);
+            const q = query(collection(db, "trades"), where("userId", "==", currentUser.uid), where("timestamp", ">=", start), where("<=", end));
+            const snapshot = await getDocs(q);
+            let wins=0, losses=0, net=0;
+            snapshot.forEach(doc => {
+                const trade = doc.data();
+                if (trade.result === 'Win') { wins++; net++; }
+                else if (trade.result === 'Loss') { losses++; net--; }
+            });
+            document.getElementById('selectedDateSummary').innerHTML = `Wins: ${wins} | Losses: ${losses} | Net: ${net} ⭐`;
+            const container = document.getElementById('historyList');
+            if (snapshot.empty) { container.innerHTML = '<p>No trades on this day</p>'; return; }
+            container.innerHTML = snapshot.docs.map(doc => {
+                const trade = doc.data();
+                return `<div class="history-trade-item ${trade.result === 'Win' ? 'trade-win' : 'trade-loss'}">${trade.instrument} - ${trade.result} ${trade.starChange > 0 ? `+${trade.starChange}` : trade.starChange}⭐</div>`;
+            }).join('');
+        }
+        
+        async function uploadProfilePic(file) {
+            const storageRef = ref(storage, `profilePics/${currentUser.uid}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            await updateDoc(doc(db, "users", currentUser.uid), { profilePictureUrl: url });
+            document.getElementById('profilePic').src = url;
+        }
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+        
+        async function logout() {
+            await signOut(auth);
+            window.location.href = 'index.html';
+        }
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) { currentUser = user; loadUserData(); }
+            else window.location.href = 'index.html';
+        });
+        
+        window.addTrade = addTrade;
+        window.loadHistoryByDate = loadHistoryByDate;
+        window.uploadProfilePic = uploadProfilePic;
+        window.toggleTheme = toggleTheme;
+        window.logout = logout;
+        
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        
+        <div class="profile-header">
+            <img id="profilePic" class="profile-pic" src="images/default-avatar.png" alt="Profile">
+            <div>
+                <h2 id="userName">Loading...</h2>
+                <div id="rankBadge"></div>
+            </div>
+            <input type="file" id="profileUpload" accept="image/*" style="display:none" onchange="uploadProfilePic(this.files[0])">
+            <button onclick="document.getElementById('profileUpload').click()"><i class="fas fa-camera"></i></button>
+            <button onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value" id="totalStars">0</div><div class="stat-label">Total ⭐</div></div>
+            <div class="stat-card"><div class="stat-value" id="monthStars">0</div><div class="stat-label">Month ⭐</div></div>
+            <div class="stat-card"><div class="stat-value" id="consistencyScore">0</div><div class="stat-label">Consistency</div></div>
+            <div class="stat-card"><div class="stat-value" id="winRate">0%</div><div class="stat-label">Win Rate</div></div>
+        </div>
+        
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div class="text-center" id="stageText"></div>
+        
+        <div class="quick-entry">
+            <button class="quick-btn btn-win" onclick="addTrade('Win')">✅</button>
+            <button class="quick-btn btn-be" onclick="addTrade('Breakeven')">🔄</button>
+            <button class="quick-btn btn-loss" onclick="addTrade('Loss')">❌</button>
+        </div>
+        
+        <div class="card">
+            <h3>📈 Equity Curve</h3>
+            <canvas id="equityChart" height="150"></canvas>
+        </div>
+        
+        <div class="card">
+            <h3>📊 Best Session</h3>
+            <p id="bestSession">London: 68% win rate</p>
+        </div>
+        
+        <div class="card">
+            <h3>🎯 Strategy Performance</h3>
+            <div id="strategyPerformance"></div>
+        </div>
+        
+        <div class="card">
+            <h3>📉 Instrument Performance</h3>
+            <div id="instrumentPerformance"></div>
+        </div>
+        
+        <div class="card">
+            <h3>📅 Trade History</h3>
+            <input type="date" id="calendarPicker" class="date-picker" onchange="loadHistoryByDate()">
+            <div id="selectedDateSummary" class="date-summary"></div>
+            <div id="historyList"></div>
+        </div>
+        
+        <div class="card">
+            <h3>📋 Recent Trades</h3>
+            <div id="recentTrades"></div>
+        </div>
+        
+        <div id="fundingTab" class="card hidden">
+            <h3>🚀 Get Funded</h3>
+            <p>You are eligible for prop firm challenges at 40% discount!</p>
+            <button class="btn btn-primary" onclick="window.location.href='funding.html'">View Challenges</button>
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item active"><i class="fas fa-home"></i><span>Journal</span></a>
+        <a href="leaderboard.html" class="nav-item"><i class="fas fa-trophy"></i><span>Leaderboard</span></a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+</body>
+</html>
