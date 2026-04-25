@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funding | Prop Firm Challenges</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+            authDomain: "web-app-a36aa.firebaseapp.com",
+            projectId: "web-app-a36aa",
+            storageBucket: "web-app-a36aa.firebasestorage.app",
+            messagingSenderId: "873638679873",
+            appId: "1:873638679873:web:490942c8492e947b09bdc0",
+            measurementId: "G-P5F8PZES9P"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore();
+        
+        let currentUser = null;
+        let userData = null;
+        
+        const challengePrices = {
+            "200k": { normal: 9000, traderPays: 3600, youPay: 5400 },
+            "400k": { normal: 18500, traderPays: 7400, youPay: 11100 },
+            "600k": { normal: 32000, traderPays: 12800, youPay: 19200 },
+            "800k": { normal: 38500, traderPays: 15400, youPay: 23100 },
+            "1M": { normal: 90000, traderPays: 36000, youPay: 54000 }
+        };
+        
+        async function loadUserData() {
+            const docRef = doc(db, "users", currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                userData = docSnap.data();
+                if (userData.level < 4) {
+                    document.getElementById('notEligible').classList.remove('hidden');
+                    document.getElementById('challengeList').classList.add('hidden');
+                } else {
+                    document.getElementById('notEligible').classList.add('hidden');
+                    document.getElementById('challengeList').classList.remove('hidden');
+                    renderChallenges();
+                }
+            }
+        }
+        
+        function renderChallenges() {
+            const container = document.getElementById('challengeList');
+            const eligibleChallenges = [];
+            
+            if (userData.level >= 4) eligibleChallenges.push("200k");
+            if (userData.level >= 5) eligibleChallenges.push("400k");
+            if (userData.level >= 6) eligibleChallenges.push("600k");
+            if (userData.level >= 7) eligibleChallenges.push("800k");
+            if (userData.level >= 8) eligibleChallenges.push("1M");
+            
+            container.innerHTML = eligibleChallenges.map(size => {
+                const price = challengePrices[size];
+                return `
+                    <div class="card">
+                        <h3>₦${parseInt(size) === 1000 ? '1 Million' : size} Account</h3>
+                        <p>Normal price: ₦${price.normal.toLocaleString()}</p>
+                        <p><strong>You pay: ₦${price.traderPays.toLocaleString()} (40%)</strong></p>
+                        <p>Platform covers: ₦${price.youPay.toLocaleString()} (60%)</p>
+                        <button class="btn btn-primary" onclick="purchaseChallenge('${size}')">Purchase Challenge</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        window.purchaseChallenge = async function(size) {
+            const price = challengePrices[size];
+            alert(`Pay ₦${price.traderPays} to OPay: Michael Segun Martin (8112401459)\n\nUpload payment proof to WhatsApp: 08112401459`);
+            
+            await addDoc(collection(db, "challenges"), {
+                userId: currentUser.uid,
+                accountSize: size,
+                pricePaid: price.traderPays,
+                youPaid: price.youPay,
+                status: "pending_verification",
+                purchasedAt: new Date().toISOString()
+            });
+        };
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) { currentUser = user; loadUserData(); }
+            else window.location.href = 'index.html';
+        });
+        
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        window.toggleTheme = toggleTheme;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <h1 class="text-center">🚀 Get Funded</h1>
+        
+        <div id="notEligible" class="card hidden">
+            <p class="text-center">You need to reach <strong>Elite Trader (Level 4)</strong> to unlock funding.</p>
+            <p class="text-center">Keep trading and earning stars!</p>
+        </div>
+        
+        <div id="challengeList" class="hidden"></div>
+        
+        <div class="card text-center">
+            <h3>📞 Payment Info</h3>
+            <p><strong>OPay:</strong> Michael Segun Martin</p>
+            <p><strong>Number:</strong> 8112401459</p>
+            <p>Send payment proof to WhatsApp: <strong>08112401459</strong></p>
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i><span>Journal</span></a>
+        <a href="leaderboard.html" class="nav-item"><i class="fas fa-trophy"></i><span>Leaderboard</span></a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+</body>
+</html>
