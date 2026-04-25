@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Trading Journal | Funded Trader Path</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+            authDomain: "web-app-a36aa.firebaseapp.com",
+            projectId: "web-app-a36aa",
+            storageBucket: "web-app-a36aa.firebasestorage.app",
+            messagingSenderId: "873638679873",
+            appId: "1:873638679873:web:490942c8492e947b09bdc0",
+            measurementId: "G-P5F8PZES9P"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore();
+        
+        window.login = async function() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        };
+        
+        window.signup = async function() {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const phone = document.getElementById('signupPhone').value;
+            const password = document.getElementById('signupPassword').value;
+            const agree = document.getElementById('agreeTerms').checked;
+            
+            if (!agree) {
+                alert('You must agree to the Terms & Conditions');
+                return;
+            }
+            
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                
+                await setDoc(doc(db, "users", user.uid), {
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    accountType: "free",
+                    totalStars: 0,
+                    currentMonthStars: 0,
+                    rank: "Novice Trader",
+                    level: 1,
+                    stage: 1,
+                    profilePictureUrl: "",
+                    createdAt: new Date().toISOString(),
+                    isBanned: false,
+                    bankAccount: null,
+                    bankName: null,
+                    consistencyScore: 0,
+                    bestSession: "",
+                    totalPnl: 0
+                });
+                
+                alert('Account created! Please login.');
+                document.getElementById('signupForm').reset();
+                showLogin();
+            } catch (error) {
+                alert('Signup failed: ' + error.message);
+            }
+        };
+        
+        window.showLogin = function() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+        };
+        
+        window.showSignup = function() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+        };
+    </script>
+</head>
+<body>
+    <div class="landing-container">
+        <div class="logo-section">
+            <i class="fas fa-chart-line"></i>
+            <h1>Trading Journal</h1>
+            <p>Track. Improve. Get Funded.</p>
+        </div>
+        
+        <!-- Login Form -->
+        <div id="loginForm" class="form-container">
+            <h2>Login</h2>
+            <input type="email" id="loginEmail" placeholder="Email" class="form-input">
+            <input type="password" id="loginPassword" placeholder="Password" class="form-input">
+            <button onclick="login()" class="btn btn-primary">Login</button>
+            <p class="switch-link">No account? <a href="#" onclick="showSignup()">Sign up</a></p>
+        </div>
+        
+        <!-- Signup Form -->
+        <div id="signupForm" class="form-container" style="display:none">
+            <h2>Sign Up</h2>
+            <input type="text" id="signupName" placeholder="Full Name" class="form-input">
+            <input type="email" id="signupEmail" placeholder="Email" class="form-input">
+            <input type="tel" id="signupPhone" placeholder="Phone Number" class="form-input">
+            <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" class="form-input">
+            <label class="checkbox-label">
+                <input type="checkbox" id="agreeTerms"> I agree to the <a href="terms.html" target="_blank">Terms & Conditions</a>
+            </label>
+            <button onclick="signup()" class="btn btn-primary">Sign Up</button>
+            <p class="switch-link">Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+        </div>
+    </div>
+</body>
+</html>
