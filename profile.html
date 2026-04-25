@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | Trading Journal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+            authDomain: "web-app-a36aa.firebaseapp.com",
+            projectId: "web-app-a36aa",
+            storageBucket: "web-app-a36aa.firebasestorage.app",
+            messagingSenderId: "873638679873",
+            appId: "1:873638679873:web:490942c8492e947b09bdc0",
+            measurementId: "G-P5F8PZES9P"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore();
+        
+        let currentUser = null;
+        
+        async function loadProfile() {
+            const docRef = doc(db, "users", currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const user = docSnap.data();
+                document.getElementById('profileName').value = user.name || '';
+                document.getElementById('profileEmail').value = user.email || '';
+                document.getElementById('profilePhone').value = user.phone || '';
+                document.getElementById('rankDisplay').innerHTML = `<div class="rank-badge rank-${user.rank.toLowerCase().replace(/\s/g, '-').replace('trader', '').replace(/-$/, '')}"><div class="rank-title">${user.rank.split(' ')[0].toUpperCase()}</div><div class="rank-subtitle">TRADER</div></div>`;
+                if (user.bankAccount) {
+                    document.getElementById('bankDetails').classList.remove('hidden');
+                    document.getElementById('bankAccount').value = user.bankAccount;
+                    document.getElementById('bankName').value = user.bankName || '';
+                    document.getElementById('accountHolder').value = user.accountHolder || '';
+                }
+            }
+        }
+        
+        async function updateProfile() {
+            const name = document.getElementById('profileName').value;
+            const phone = document.getElementById('profilePhone').value;
+            await updateDoc(doc(db, "users", currentUser.uid), { name, phone });
+            alert('Profile updated!');
+        }
+        
+        async function saveBankDetails() {
+            const bankAccount = document.getElementById('bankAccount').value;
+            const bankName = document.getElementById('bankName').value;
+            const accountHolder = document.getElementById('accountHolder').value;
+            await updateDoc(doc(db, "users", currentUser.uid), { bankAccount, bankName, accountHolder });
+            alert('Bank details saved!');
+        }
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) { currentUser = user; loadProfile(); }
+            else window.location.href = 'index.html';
+        });
+        
+        window.updateProfile = updateProfile;
+        window.saveBankDetails = saveBankDetails;
+        window.toggleTheme = toggleTheme;
+        
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <h1 class="text-center">Profile</h1>
+        
+        <div class="card">
+            <div id="rankDisplay" class="text-center"></div>
+            <input type="text" id="profileName" placeholder="Full Name" class="form-input">
+            <input type="email" id="profileEmail" placeholder="Email" class="form-input" readonly>
+            <input type="tel" id="profilePhone" placeholder="Phone" class="form-input">
+            <button onclick="updateProfile()" class="btn btn-primary">Update Profile</button>
+        </div>
+        
+        <div id="bankDetails" class="card hidden">
+            <h3>🏦 Bank Details (Unlocked at Payout)</h3>
+            <input type="text" id="bankAccount" placeholder="Account Number" class="form-input">
+            <input type="text" id="bankName" placeholder="Bank Name" class="form-input">
+            <input type="text" id="accountHolder" placeholder="Account Holder Name" class="form-input">
+            <button onclick="saveBankDetails()" class="btn btn-primary">Save Bank Details</button>
+        </div>
+        
+        <div class="card text-center">
+            <h3>📞 Support</h3>
+            <p>WhatsApp: <strong>08112401459</strong></p>
+            <p>OPay: <strong>Michael Segun Martin</strong></p>
+        </div>
+    </div>
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i><span>Journal</span></a>
+        <a href="leaderboard.html" class="nav-item"><i class="fas fa-trophy"></i><span>Leaderboard</span></a>
+        <a href="profile.html" class="nav-item active"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+</body>
+</html>
