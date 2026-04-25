@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard | Trading Journal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+            authDomain: "web-app-a36aa.firebaseapp.com",
+            projectId: "web-app-a36aa",
+            storageBucket: "web-app-a36aa.firebasestorage.app",
+            messagingSenderId: "873638679873",
+            appId: "1:873638679873:web:490942c8492e947b09bdc0",
+            measurementId: "G-P5F8PZES9P"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore();
+        
+        async function loadLeaderboard() {
+            const q = query(collection(db, "users"), where("accountType", "==", "participant"), where("isBanned", "==", false), orderBy("currentMonthStars", "desc"), limit(10));
+            const snapshot = await getDocs(q);
+            const container = document.getElementById('leaderboardList');
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-center">No participants yet. Be the first!</p>';
+                return;
+            }
+            let rank = 1;
+            container.innerHTML = snapshot.docs.map(doc => {
+                const user = doc.data();
+                const medal = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : `${rank}.`));
+                const item = `<div class="leaderboard-item"><span class="rank-number">${medal}</span><div><strong>${user.name}</strong><br><small>${user.rank}</small></div><div style="margin-left:auto">${user.currentMonthStars || 0} ⭐</div></div>`;
+                rank++;
+                return item;
+            }).join('');
+        }
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+        
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = 'index.html';
+            else loadLeaderboard();
+        });
+        
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        window.toggleTheme = toggleTheme;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <h1 class="text-center">🏆 Global Leaderboard</h1>
+        <p class="text-center">Top 10 traders this month</p>
+        <div class="card" id="leaderboardList"></div>
+        <div class="card text-center">
+            <h3>🏅 Monthly Prize</h3>
+            <p>Top 3 win <strong>Free 200k Challenge + 20 Stars!</strong></p>
+        </div>
+    </div>
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i><span>Journal</span></a>
+        <a href="leaderboard.html" class="nav-item active"><i class="fas fa-trophy"></i><span>Leaderboard</span></a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+</body>
+</html>
