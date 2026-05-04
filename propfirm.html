@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault - Prop Firm Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="location.href='index.html'">Trade Vault</div>
+        <div class="nav-links">
+            <a href="dashboard.html">Log Trade</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="propfirm.html" class="active">Prop Firm</a>
+            <a href="profile.html">Profile</a>
+            <button class="btn btn-outline" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Prop Firm Rules -->
+        <div class="card"><div class="card-header"><h3><i class="fas fa-building"></i> Challenge Tracker</h3></div><div class="card-body">
+            <div class="grid grid-2">
+                <div class="form-group"><label>Firm</label><select id="firm"><option>FTMO</option><option>MyForexFunds</option><option>The Funded Trader</option><option>E8 Funding</option></select></div>
+                <div class="form-group"><label>Account Size ($)</label><input type="number" id="accountSize" placeholder="100000" value="100000"></div>
+            </div>
+        </div></div>
+
+        <!-- Progress Bars -->
+        <div class="grid grid-3">
+            <div class="card"><div class="card-header"><h3>🎯 Profit Target</h3></div><div class="card-body"><div class="stat-value" id="profitPercent">0%</div><div class="progress-track"><div class="progress-fill" id="profitFill"></div></div><div id="profitDetails"></div></div></div>
+            <div class="card"><div class="card-header"><h3>⚠️ Daily Loss</h3></div><div class="card-body"><div class="stat-value" id="dailyPercent">0%</div><div class="progress-track"><div class="progress-fill" id="dailyFill" style="background:#ef4444;"></div></div><div id="dailyDetails"></div></div></div>
+            <div class="card"><div class="card-header"><h3>📉 Max Drawdown</h3></div><div class="card-body"><div class="stat-value" id="drawdownPercent">0%</div><div class="progress-track"><div class="progress-fill" id="drawdownFill" style="background:#f59e0b;"></div></div><div id="drawdownDetails"></div></div></div>
+        </div>
+
+        <!-- Update Form -->
+        <div class="card"><div class="card-header"><h3><i class="fas fa-edit"></i> Update Stats</h3></div><div class="card-body">
+            <div class="grid grid-3">
+                <div class="form-group"><label>Current Profit ($)</label><input type="number" id="profit" placeholder="0"></div>
+                <div class="form-group"><label>Today's Loss ($)</label><input type="number" id="dailyLoss" placeholder="0"></div>
+                <div class="form-group"><label>Drawdown Used ($)</label><input type="number" id="drawdown" placeholder="0"></div>
+            </div>
+            <button class="btn btn-primary" onclick="updateChallenge()">Update</button>
+            <div id="alertMessage" class="alert alert-warning" style="margin-top: 1rem;"></div>
+        </div></div>
+
+        <!-- Payout Tracker -->
+        <div class="card"><div class="card-header"><h3><i class="fas fa-money-bill-wave"></i> Payout Tracker</h3></div><div class="card-body">
+            <div class="grid grid-2"><div class="form-group"><label>Total Payouts ($)</label><input type="number" id="totalPayouts" placeholder="0"></div>
+            <div class="form-group"><label>Next Payout ($)</label><input type="number" id="nextPayout" placeholder="0"></div></div>
+            <button class="btn btn-secondary" onclick="savePayouts()">Save Payouts</button>
+        </div></div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        let currentUser = null;
+        const FIRM_RULES = { 'FTMO': { profitTarget: 0.10, dailyLoss: 0.05, maxDrawdown: 0.10 }, 'MyForexFunds': { profitTarget: 0.08, dailyLoss: 0.05, maxDrawdown: 0.12 }, 'The Funded Trader': { profitTarget: 0.09, dailyLoss: 0.04, maxDrawdown: 0.10 }, 'E8 Funding': { profitTarget: 0.08, dailyLoss: 0.05, maxDrawdown: 0.10 } };
+
+        async function loadData() {
+            let userDoc = await db.collection('users').doc(currentUser.uid).get();
+            let data = userDoc.data()?.propFirm || {};
+            document.getElementById('firm').value = data.firm || 'FTMO';
+            document.getElementById('accountSize').value = data.accountSize || 100000;
+            document.getElementById('profit').value = data.profit || 0;
+            document.getElementById('dailyLoss').value = data.dailyLoss || 0;
+            document.getElementById('drawdown').value = data.drawdown || 0;
+            document.getElementById('totalPayouts').value = data.totalPayouts || 0;
+            document.getElementById('nextPayout').value = data.nextPayout || 0;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            let firm = document.getElementById('firm').value;
+            let rules = FIRM_RULES[firm] || FIRM_RULES['FTMO'];
+            let accountSize = parseFloat(document.getElementById('accountSize').value) || 100000;
+            let profit = parseFloat(document.getElementById('profit').value) || 0;
+            let dailyLoss = parseFloat(document.getElementById('dailyLoss').value) || 0;
+            let drawdown = parseFloat(document.getElementById('drawdown').value) || 0;
+
+            let profitTarget = accountSize * rules.profitTarget;
+            let profitPct = (profit / profitTarget * 100).toFixed(1);
+            document.getElementById('profitPercent').innerHTML = profitPct + '%';
+            document.getElementById('profitFill').style.width = Math.min(profitPct, 100) + '%';
+            document.getElementById('profitDetails').innerHTML = `$${profit.toLocaleString()} / $${profitTarget.toLocaleString()}`;
+
+            let dailyLimit = accountSize * rules.dailyLoss;
+            let dailyPct = (dailyLoss / dailyLimit * 100).toFixed(1);
+            document.getElementById('dailyPercent').innerHTML = dailyPct + '%';
+            document.getElementById('dailyFill').style.width = Math.min(dailyPct, 100) + '%';
+            document.getElementById('dailyDetails').innerHTML = `$${dailyLoss.toLocaleString()} / $${dailyLimit.toLocaleString()}`;
+
+            let drawdownLimit = accountSize * rules.maxDrawdown;
+            let drawdownPct = (drawdown / drawdownLimit * 100).toFixed(1);
+            document.getElementById('drawdownPercent').innerHTML = drawdownPct + '%';
+            document.getElementById('drawdownFill').style.width = Math.min(drawdownPct, 100) + '%';
+            document.getElementById('drawdownDetails').innerHTML = `$${drawdown.toLocaleString()} / $${drawdownLimit.toLocaleString()}`;
+
+            let alerts = [];
+            if (dailyLoss > dailyLimit * 0.8) alerts.push(`⚠️ Daily loss warning! Only $${(dailyLimit - dailyLoss).toFixed(0)} left.`);
+            if (drawdown > drawdownLimit * 0.8) alerts.push(`🔴 Drawdown warning! Only $${(drawdownLimit - drawdown).toFixed(0)} left.`);
+            if (profit >= profitTarget) alerts.push(`🎉 CONGRATULATIONS! Profit target reached!`);
+            document.getElementById('alertMessage').innerHTML = alerts.length ? alerts.join('<br>') : '<div class="alert alert-success">✅ All limits within range. Keep trading.</div>';
+        }
+
+        async function updateChallenge() {
+            let data = { firm: document.getElementById('firm').value, accountSize: parseFloat(document.getElementById('accountSize').value), profit: parseFloat(document.getElementById('profit').value), dailyLoss: parseFloat(document.getElementById('dailyLoss').value), drawdown: parseFloat(document.getElementById('drawdown').value), updatedAt: new Date().toISOString() };
+            await db.collection('users').doc(currentUser.uid).set({ propFirm: data }, { merge: true });
+            updateDisplay();
+            alert('✅ Challenge updated!');
+        }
+
+        async function savePayouts() {
+            let totalPayouts = parseFloat(document.getElementById('totalPayouts').value);
+            let nextPayout = parseFloat(document.getElementById('nextPayout').value);
+            await db.collection('users').doc(currentUser.uid).set({ propFirm: { totalPayouts, nextPayout } }, { merge: true });
+            alert('✅ Payouts saved!');
+        }
+
+        document.getElementById('firm').addEventListener('change', updateDisplay);
+        document.getElementById('accountSize').addEventListener('input', updateDisplay);
+        document.getElementById('profit').addEventListener('input', updateDisplay);
+        document.getElementById('dailyLoss').addEventListener('input', updateDisplay);
+        document.getElementById('drawdown').addEventListener('input', updateDisplay);
+
+        async function logout() { await auth.signOut(); window.location.href = 'index.html'; }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                if (!await checkSubscription(user.uid)) window.location.href = 'pricing.html';
+                else loadData();
+            } else { window.location.href = 'index.html'; }
+        });
+        window.updateChallenge = updateChallenge; window.savePayouts = savePayouts; window.logout = logout;
+    </script>
+</body>
+</html>
