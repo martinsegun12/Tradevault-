@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault - Pricing</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="location.href='index.html'">Trade Vault</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="pricing.html" class="active">Pricing</a>
+            <button class="btn btn-outline" onclick="openModal()">Login</button>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 500px;">
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h2>Lifetime Access</h2>
+                <div style="font-size: 3rem; font-weight: 700; color: #60a5fa; margin: 1rem 0;">₦5,000</div>
+                <p>One-time payment • No monthly fees</p>
+                <div style="background: #0f172a; border-radius: 12px; padding: 1rem; margin: 1.5rem 0; text-align: left;">
+                    <p>✅ Unlimited trade logging</p>
+                    <p>✅ Full analytics & charts</p>
+                    <p>✅ Rank progression system</p>
+                    <p>✅ Prop firm tracker</p>
+                    <p>✅ CSV export</p>
+                </div>
+                <div style="background: #0f172a; border-radius: 12px; padding: 1rem; margin: 1rem 0;">
+                    <p><strong>Pay via Opay</strong></p>
+                    <p>Martin segun Michael</p>
+                    <p style="font-size: 1.5rem; font-weight: bold;">8112401459</p>
+                </div>
+                <input type="text" id="paymentRef" placeholder="Transaction Reference" class="form-control" style="margin: 1rem 0;">
+                <button class="btn btn-primary" style="width: 100%;" onclick="verifyPayment()">Verify Payment</button>
+                <div id="verifyMsg" style="margin-top: 1rem;"></div>
+                <hr style="margin: 1.5rem 0; border-color: #1e293b;">
+                <p><i class="fas fa-gift"></i> Start with a <strong>15-day free trial</strong>!</p>
+                <button class="btn btn-outline" style="width: 100%; margin-top: 0.5rem;" onclick="startTrial()">Start Free Trial</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal"><div class="modal-content"><h3>Login</h3><input type="email" id="loginEmail" placeholder="Email" class="form-control" style="margin-bottom: 10px;"><input type="password" id="loginPassword" placeholder="Password" class="form-control" style="margin-bottom: 15px;"><button class="btn btn-primary" style="width: 100%;" onclick="login()">Login</button><p id="loginError" style="color:#ef4444; margin-top:10px;"></p></div></div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        async function verifyPayment() {
+            let ref = document.getElementById('paymentRef').value;
+            let user = auth.currentUser;
+            if (!ref) { document.getElementById('verifyMsg').innerHTML = '<div class="alert alert-danger">Enter transaction reference</div>'; return; }
+            if (!user) { document.getElementById('verifyMsg').innerHTML = '<div class="alert alert-danger">Please login first</div>'; openModal(); return; }
+            await db.collection('users').doc(user.uid).update({ paidUntil: new Date(Date.now() + 365 * 86400000).toISOString(), paymentRef: ref });
+            document.getElementById('verifyMsg').innerHTML = '<div class="alert alert-success">✅ Payment verified! Redirecting...</div>';
+            setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+        }
+
+        async function startTrial() {
+            let user = auth.currentUser;
+            if (!user) { openModal(); return; }
+            let trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 15);
+            await db.collection('users').doc(user.uid).set({ trialEnd: trialEnd.toISOString() }, { merge: true });
+            window.location.href = 'dashboard.html';
+        }
+
+        function openModal() { document.getElementById('modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        async function login() { try { await auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value); closeModal(); } catch(e) { document.getElementById('loginError').innerText = e.message; } }
+
+        window.verifyPayment = verifyPayment; window.startTrial = startTrial; window.openModal = openModal; window.login = login;
+    </script>
+</body>
+</html>
