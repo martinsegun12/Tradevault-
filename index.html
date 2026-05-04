@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault | Professional Trading Journal</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hero {
+            text-align: center;
+            padding: 4rem 0 2rem;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+        }
+        .hero p {
+            color: #9ca3af;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+        .feature {
+            background: #111827;
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid #1f2a3e;
+            text-align: center;
+        }
+        .feature i {
+            font-size: 2rem;
+            color: #60a5fa;
+            margin-bottom: 1rem;
+        }
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #0f172a;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .rank-preview {
+            background: #0f172a;
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .rank-list {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .rank-item {
+            flex: 1;
+            min-width: 80px;
+            padding: 1rem;
+            background: #111827;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="location.href='index.html'">Trade Vault</div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="dashboard.html">Log Trade</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="propfirm.html">Prop Firm</a>
+            <a href="profile.html">Profile</a>
+            <a href="pricing.html">Pricing</a>
+            <button class="btn btn-outline" onclick="openModal()">Login</button>
+            <button class="btn btn-primary" onclick="location.href='pricing.html'">Free Trial</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Professional Trading Journal</h1>
+            <p>Track every trade, analyze your performance, and climb the ranks. Used by 500+ traders.</p>
+            <button class="btn btn-primary" onclick="location.href='pricing.html'" style="margin-top: 1.5rem;">Start 15-Day Free Trial →</button>
+        </div>
+
+        <div class="stats">
+            <div><div class="stat-value">15+</div><div class="stat-label">Features</div></div>
+            <div><div class="stat-value">6</div><div class="stat-label">Ranks</div></div>
+            <div><div class="stat-value">50+</div><div class="stat-label">Stages</div></div>
+            <div><div class="stat-value">₦5K</div><div class="stat-label">Lifetime</div></div>
+        </div>
+
+        <div class="features">
+            <div class="feature"><i class="fas fa-chart-line"></i><h3>Equity Curve</h3><p>Track your P&L over time</p></div>
+            <div class="feature"><i class="fas fa-trophy"></i><h3>Rank System</h3><p>Win stars, lose stars</p></div>
+            <div class="feature"><i class="fas fa-calculator"></i><h3>R:R Calculator</h3><p>Auto position sizing</p></div>
+            <div class="feature"><i class="fas fa-building"></i><h3>Prop Firm</h3><p>FTMO challenge tracker</p></div>
+        </div>
+
+        <div class="rank-preview">
+            <h3>Rank Progression</h3>
+            <div class="rank-list">
+                <div class="rank-item">🌱 Beginner<br><small>3⭐ → 3⭐ → 3⭐</small></div>
+                <div class="rank-item">⚙️ Intermediate<br><small>3⭐ → 3⭐ → 3⭐</small></div>
+                <div class="rank-item">⚔️ Advanced<br><small>3⭐ → 3⭐ → 3⭐</small></div>
+                <div class="rank-item">👑 Elite<br><small>8 stages • 20⭐ each</small></div>
+                <div class="rank-item">🐉 Master<br><small>10 stages • 20⭐ each</small></div>
+                <div class="rank-item">🌟 Elite Master<br><small>10 stages • 20⭐ each</small></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2024 Trade Vault | Pay via Opay: 8112401459 (Martin segun Michael)</p>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <h3>Sign In</h3>
+                <i class="fas fa-times" onclick="closeModal()" style="cursor: pointer;"></i>
+            </div>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('login')">Login</div>
+                <div class="tab" onclick="switchTab('register')">Register</div>
+            </div>
+            <div id="loginForm">
+                <input type="email" id="loginEmail" placeholder="Email" class="form-control" style="margin-bottom: 10px;">
+                <input type="password" id="loginPassword" placeholder="Password" class="form-control" style="margin-bottom: 15px;">
+                <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="login()">Login</button>
+                <button class="btn btn-outline" style="width: 100%;" onclick="googleLogin()"><i class="fab fa-google"></i> Google</button>
+                <p id="loginError" style="color: #ef4444; margin-top: 10px;"></p>
+            </div>
+            <div id="registerForm" style="display: none;">
+                <input type="text" id="regName" placeholder="Full Name" class="form-control" style="margin-bottom: 10px;">
+                <input type="email" id="regEmail" placeholder="Email" class="form-control" style="margin-bottom: 10px;">
+                <input type="password" id="regPassword" placeholder="Password" class="form-control" style="margin-bottom: 15px;">
+                <button class="btn btn-primary" style="width: 100%;" onclick="register()">Start Free Trial</button>
+                <p id="regError" style="color: #ef4444; margin-top: 10px;"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        function openModal() { document.getElementById('modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        
+        function switchTab(tab) {
+            const login = document.getElementById('loginForm');
+            const register = document.getElementById('registerForm');
+            const tabs = document.querySelectorAll('.tab');
+            if (tab === 'login') {
+                login.style.display = 'block';
+                register.style.display = 'none';
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                login.style.display = 'none';
+                register.style.display = 'block';
+                tabs[1].classList.add('active');
+                tabs[0].classList.remove('active');
+            }
+        }
+        
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+            } catch(e) { document.getElementById('loginError').innerText = e.message; }
+        }
+        
+        async function googleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                const result = await auth.signInWithPopup(provider);
+                const userDoc = await db.collection('users').doc(result.user.uid).get();
+                if (!userDoc.exists) {
+                    const trialEnd = new Date();
+                    trialEnd.setDate(trialEnd.getDate() + 15);
+                    await db.collection('users').doc(result.user.uid).set({
+                        name: result.user.displayName, email: result.user.email,
+                        trialEnd: trialEnd.toISOString(), totalWins: 0, totalLosses: 0
+                    });
+                }
+            } catch(e) { document.getElementById('loginError').innerText = e.message; }
+        }
+        
+        async function register() {
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPassword').value;
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                await cred.user.updateProfile({ displayName: name });
+                const trialEnd = new Date();
+                trialEnd.setDate(trialEnd.getDate() + 15);
+                await db.collection('users').doc(cred.user.uid).set({
+                    name, email, trialEnd: trialEnd.toISOString(), totalWins: 0, totalLosses: 0
+                });
+                alert('15-day free trial activated!');
+                window.location.href = 'dashboard.html';
+            } catch(e) { document.getElementById('regError').innerText = e.message; }
+        }
+        
+        auth.onAuthStateChanged(async (user) => {
+            if (user && await checkSubscription(user.uid)) window.location.href = 'dashboard.html';
+        });
+        
+        window.openModal = openModal; window.closeModal = closeModal; window.switchTab = switchTab;
+        window.login = login; window.googleLogin = googleLogin; window.register = register;
+    </script>
+</body>
+</html>
