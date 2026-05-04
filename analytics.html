@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Vault - Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="location.href='index.html'">Trade Vault</div>
+        <div class="nav-links">
+            <a href="dashboard.html">Log Trade</a>
+            <a href="analytics.html" class="active">Analytics</a>
+            <a href="propfirm.html">Prop Firm</a>
+            <a href="profile.html">Profile</a>
+            <button class="btn btn-outline" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="grid grid-4">
+            <div class="stat-card"><div class="stat-value" id="winRate">0%</div><div class="stat-label">Win Rate</div></div>
+            <div class="stat-card"><div class="stat-value" id="totalTrades">0</div><div class="stat-label">Total Trades</div></div>
+            <div class="stat-card"><div class="stat-value" id="totalPnL">$0</div><div class="stat-label">Total P&L</div></div>
+            <div class="stat-card"><div class="stat-value" id="avgRR">0:1</div><div class="stat-label">Avg R:R</div></div>
+        </div>
+
+        <!-- Equity Curve -->
+        <div class="card"><div class="card-header"><h3><i class="fas fa-chart-line"></i> Equity Curve</h3></div><div class="card-body"><canvas id="equityChart" height="150"></canvas></div></div>
+
+        <!-- Best & Worst -->
+        <div class="grid grid-2">
+            <div class="card"><div class="card-header"><h3><i class="fas fa-rocket"></i> Best Strategy</h3></div><div class="card-body"><div id="bestStrategy" class="stat-value" style="font-size: 1.2rem;">-</div><div id="bestStrategyRate"></div></div></div>
+            <div class="card"><div class="card-header"><h3><i class="fas fa-exclamation-triangle"></i> Most Common Mistake</h3></div><div class="card-body"><div id="worstMistake" class="stat-value" style="font-size: 1.2rem;">-</div><div id="worstMistakeCount"></div></div></div>
+        </div>
+
+        <!-- Session Performance -->
+        <div class="card"><div class="card-header"><h3><i class="fas fa-clock"></i> Session Performance</h3></div><div class="card-body"><canvas id="sessionChart" height="120"></canvas></div></div>
+
+        <!-- Emotion Analysis -->
+        <div class="card"><div class="card-header"><h3><i class="fas fa-smile"></i> Emotion vs Performance</h3></div><div class="card-body"><canvas id="emotionChart" height="120"></canvas></div></div>
+
+        <!-- Weekly Review -->
+        <div class="card"><div class="card-header"><h3><i class="fas fa-calendar-week"></i> Weekly Review</h3></div><div class="card-body"><div id="weeklyReview" class="alert alert-info">Loading insights...</div></div></div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        let currentUser = null;
+        let equityChart = null, sessionChart = null, emotionChart = null;
+
+        async function loadAnalytics() {
+            let trades = await db.collection('trades').where('userId', '==', currentUser.uid).orderBy('date').get();
+            let data = trades.docs.map(d => d.data());
+            let wins = data.filter(t => t.result === 'win').length;
+            let total = data.length;
+            let winRate = total === 0 ? 0 : (wins / total * 100).toFixed(1);
+            let totalPnL = data.reduce((sum, t) => sum + (t.result === 'win' ? t.pnl : -t.pnl), 0);
+            let avgRR = data.reduce((sum, t) => sum + (t.rr || 0), 0) / (total || 1);
+
+            document.getElementById('winRate').innerHTML = winRate + '%';
+            document.getElementById('totalTrades').innerHTML = total;
+            document.getElementById('totalPnL').innerHTML = '$' + totalPnL.toFixed(2);
+            document.getElementById('avgRR').innerHTML = `1:${avgRR.toFixed(1)}`;
+
+            // Equity Curve
+            let equity = 10000;
+            let points = [{x: 0, y: equity}];
+            data.forEach((t, i) => { equity += t.result === 'win' ? t.pnl : -t.pnl; points.push({x: i+1, y: equity}); });
+            if (equityChart) equityChart.destroy();
+            equityChart = new Chart(document.getElementById('equityChart').getContext('2d'), { type: 'line', data: { labels: points.map(p => p.x), datasets: [{ label: 'Equity', data: points.map(p => p.y), borderColor: '#3b82f6', fill: true }] }, options: { responsive: true, maintainAspectRatio: true } });
+
+            // Session Performance
+            let sessions = { 'Asia/London': { wins: 0, total: 0 }, 'London/NY': { wins: 0, total: 0 }, 'NY/Asia': { wins: 0, total: 0 } };
+            data.forEach(t => { let s = getSession(t.date); if (sessions[s]) { sessions[s].total++; if (t.result === 'win') sessions[s].wins++; } });
+            let sessionLabels = Object.keys(sessions);
+            let sessionRates = sessionLabels.map(s => sessions[s].total ? (sessions[s].wins / sessions[s].total * 100) : 0);
+            if (sessionChart) sessionChart.destroy();
+            sessionChart = new Chart(document.getElementById('sessionChart').getContext('2d'), { type: 'bar', data: { labels: sessionLabels, datasets: [{ label: 'Win Rate %', data: sessionRates, backgroundColor: '#3b82f6' }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { max: 100 } } } });
+
+            // Emotion Analysis
+            let emotions = ['Calm', 'Disciplined', 'Anxious', 'Overconfident', 'Fearful'];
+            let emotionRates = emotions.map(e => { let filtered = data.filter(t => t.emotion === e); let w = filtered.filter(t => t.result === 'win').length; return filtered.length ? (w / filtered.length * 100) : 0; });
+            if (emotionChart) emotionChart.destroy();
+            emotionChart = new Chart(document.getElementById('emotionChart').getContext('2d'), { type: 'radar', data: { labels: emotions, datasets: [{ label: 'Win Rate %', data: emotionRates, backgroundColor: 'rgba(59,130,246,0.2)', borderColor: '#3b82f6' }] }, options: { responsive: true, maintainAspectRatio: true, scales: { r: { max: 100 } } } });
+
+            // Best Strategy
+            let strategies = {};
+            data.forEach(t => { if (t.strategy && t.strategy !== 'Not specified') { if (!strategies[t.strategy]) strategies[t.strategy] = { wins: 0, total: 0 }; strategies[t.strategy].total++; if (t.result === 'win') strategies[t.strategy].wins++; } });
+            let best = { name: '-', rate: 0 };
+            for (let s in strategies) { let rate = (strategies[s].wins / strategies[s].total * 100); if (rate > best.rate && strategies[s].total >= 2) best = { name: s, rate: rate }; }
+            document.getElementById('bestStrategy').innerHTML = best.name;
+            document.getElementById('bestStrategyRate').innerHTML = best.rate > 0 ? `${best.rate.toFixed(0)}% win rate` : 'Log more trades';
+
+            // Worst Mistake
+            let mistakes = {};
+            data.forEach(t => { if (t.mistake && t.mistake !== 'None') mistakes[t.mistake] = (mistakes[t.mistake] || 0) + 1; });
+            let topMistake = 'None', topCount = 0;
+            for (let m in mistakes) { if (mistakes[m] > topCount) { topCount = mistakes[m]; topMistake = m; } }
+            document.getElementById('worstMistake').innerHTML = topMistake;
+            document.getElementById('worstMistakeCount').innerHTML = topCount > 0 ? `${topCount} times` : 'No mistakes logged';
+
+            // Weekly Review
+            let last7 = data.filter(t => new Date(t.date) > new Date(Date.now() - 7 * 86400000));
+            let weekWins = last7.filter(t => t.result === 'win').length;
+            let weekLosses = last7.filter(t => t.result === 'loss').length;
+            let insight = weekWins > weekLosses * 2 ? 'Excellent week! Keep the discipline.' : (weekLosses > weekWins ? 'Tough week. Review your mistakes.' : 'Consistent week. Focus on R:R.');
+            document.getElementById('weeklyReview').innerHTML = `<strong>📊 ${weekWins}W - ${weekLosses}L</strong><br>${insight}`;
+        }
+
+        function getSession(date) {
+            let hour = new Date(date).getHours();
+            if (hour < 12) return 'Asia/London';
+            if (hour < 18) return 'London/NY';
+            return 'NY/Asia';
+        }
+
+        async function logout() { await auth.signOut(); window.location.href = 'index.html'; }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                if (!await checkSubscription(user.uid)) window.location.href = 'pricing.html';
+                else loadAnalytics();
+            } else { window.location.href = 'index.html'; }
+        });
+        window.logout = logout;
+    </script>
+</body>
+</html>
