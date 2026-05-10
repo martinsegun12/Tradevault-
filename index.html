@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeVault Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+  :root {
+    --bg:#06080b;--bg2:#090d12;--card:#0d1219;--card2:#111720;
+    --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.10);
+    --gold:#c8922a;--gold2:#a97520;--gold-dim:rgba(200,146,42,0.08);
+    --green:#16a870;--green-dim:rgba(22,168,112,0.08);
+    --red:#dc3545;--red-dim:rgba(220,53,69,0.08);
+    --text:#dce3ed;--text2:#7d8fa3;--text3:#3d4f62;
+    --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
+
+  /* ── TOP NAV ── */
+  .top-nav{background:rgba(6,8,11,0.98);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);}
+  .nav-brand{display:flex;align-items:center;gap:10px;}
+  .brand-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .brand-name{font-size:13px;font-weight:700;letter-spacing:3px;color:var(--gold);font-family:var(--mono);}
+  .admin-badge{padding:3px 10px;background:var(--red-dim);border:1px solid rgba(220,53,69,0.25);border-radius:4px;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--red);font-family:var(--mono);}
+  .nav-uid{font-size:10px;color:var(--text3);font-family:var(--mono);}
+
+  /* ── LAYOUT ── */
+  .container{max-width:1100px;margin:0 auto;padding:28px 24px;}
+
+  /* ── STATS ROW ── */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+  .stat-box{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:18px;}
+  .stat-box .label{font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;margin-bottom:8px;}
+  .stat-box .value{font-size:26px;font-weight:700;letter-spacing:-0.5px;}
+  .stat-box.gold-accent{border-left:2px solid var(--gold);}.stat-box.gold-accent .value{color:var(--gold);}
+  .stat-box.green-accent{border-left:2px solid var(--green);}.stat-box.green-accent .value{color:var(--green);}
+  .stat-box.red-accent{border-left:2px solid var(--red);}.stat-box.red-accent .value{color:var(--red);}
+  .stat-box.blue-accent{border-left:2px solid #4a6fa5;}.stat-box.blue-accent .value{color:var(--text);}
+
+  /* ── PANELS ── */
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;}
+  @media(max-width:700px){.panels{grid-template-columns:1fr;}.stats-row{grid-template-columns:1fr 1fr;}}
+  .panel{background:var(--card2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .panel-title{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text2);font-family:var(--mono);text-transform:uppercase;}
+  .panel-body{padding:16px 20px;}
+
+  /* ── SEARCH ── */
+  .search-row{display:flex;gap:10px;margin-bottom:20px;}
+  .search-input{flex:1;padding:10px 14px;background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:.15s;}
+  .search-input:focus{border-color:rgba(200,146,42,0.4);box-shadow:0 0 0 3px rgba(200,146,42,0.06);}
+  .search-input::placeholder{color:var(--text3);}
+  .btn{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.8px;transition:.15s;}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;}
+  .btn-gold:hover{opacity:0.88;}
+  .btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+  .btn-ghost:hover{border-color:var(--border2);background:rgba(255,255,255,0.03);}
+  .btn-sm{padding:6px 12px;font-size:10px;}
+  .btn-pro{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;}
+  .btn-revoke{background:var(--red-dim);border:1px solid rgba(220,53,69,0.2);color:var(--red);}
+  .btn-pro:hover{opacity:0.85;}
+  .btn-revoke:hover{background:rgba(220,53,69,0.15);}
+
+  /* ── USER RESULT CARD ── */
+  .user-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
+  .user-card-top{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+  .user-avatar{width:40px;height:40px;border-radius:50%;background:var(--gold-dim);border:1.5px solid rgba(200,146,42,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--gold);font-family:var(--mono);flex-shrink:0;}
+  .user-info{flex:1;}
+  .user-name{font-size:13px;font-weight:600;}
+  .user-email{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px;}
+  .user-uid{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px;word-break:break-all;}
+  .plan-pill{padding:3px 10px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:1.5px;font-family:var(--mono);}
+  .plan-pill.pro{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(200,146,42,0.25);}
+  .plan-pill.free{background:rgba(255,255,255,0.04);color:var(--text3);border:1px solid var(--border);}
+  .user-meta{display:flex;gap:16px;font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:12px;flex-wrap:wrap;}
+  .user-meta span{display:flex;align-items:center;gap:4px;}
+  .user-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ── PRO REQUESTS TABLE ── */
+  .req-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .req-item:last-child{border-bottom:none;}
+  .req-info{flex:1;}
+  .req-email{font-size:12px;font-weight:600;}
+  .req-ref{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px;}
+  .req-time{font-size:10px;color:var(--text3);font-family:var(--mono);}
+  .status-pill{padding:3px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:1px;font-family:var(--mono);}
+  .status-pill.pending{background:rgba(200,146,42,0.1);color:var(--gold);border:1px solid rgba(200,146,42,0.2);}
+  .status-pill.approved{background:var(--green-dim);color:var(--green);border:1px solid rgba(22,168,112,0.2);}
+  .status-pill.rejected{background:var(--red-dim);color:var(--red);border:1px solid rgba(220,53,69,0.2);}
+
+  /* ── ALL USERS TABLE ── */
+  .full-panel{background:var(--card2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:28px;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  thead tr{border-bottom:1px solid var(--border2);}
+  th{padding:12px 16px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;white-space:nowrap;}
+  td{padding:12px 16px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,0.015);}
+  .td-email{font-family:var(--mono);font-size:11px;}
+  .td-uid{font-family:var(--mono);font-size:10px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .td-date{font-family:var(--mono);font-size:10px;color:var(--text3);}
+
+  /* ── TOAST ── */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:12px;font-family:var(--mono);font-weight:600;letter-spacing:0.5px;z-index:9999;display:none;white-space:nowrap;}
+  #toast.success{background:#16a870;color:#fff;}
+  #toast.error{background:var(--red);color:#fff;}
+
+  /* ── LOADING / EMPTY STATES ── */
+  .loading{text-align:center;padding:32px;color:var(--text3);font-family:var(--mono);font-size:11px;letter-spacing:1px;}
+  .empty{text-align:center;padding:32px;color:var(--text3);font-family:var(--mono);font-size:11px;}
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;margin-right:8px;vertical-align:middle;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ── SECTION LABEL ── */
+  .section-label{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;margin-bottom:14px;}
+
+  /* ── ACCESS DENIED ── */
+  #accessDenied{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:16px;text-align:center;padding:24px;}
+  #accessDenied.show{display:flex;}
+  #mainContent{display:none;}
+  #mainContent.show{display:block;}
+
+  /* ── LOGIN SCREEN ── */
+  #loginPrompt{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;}
+  #loginPrompt.show{display:flex;}
+  .login-box{width:100%;max-width:360px;background:var(--card2);border:1px solid var(--border2);border-radius:16px;padding:36px 28px;}
+  .login-logo{text-align:center;margin-bottom:28px;}
+  .login-logo .icon{width:52px;height:52px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px;}
+  .login-logo h2{font-size:13px;font-weight:700;letter-spacing:3px;color:var(--gold);font-family:var(--mono);}
+  .login-logo p{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:2px;margin-top:5px;}
+  .login-field{margin-bottom:14px;}
+  .login-field label{display:block;font-size:9px;font-weight:600;letter-spacing:1px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;margin-bottom:6px;}
+  .login-field input{width:100%;padding:11px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:.15s;}
+  .login-field input:focus{border-color:rgba(200,146,42,0.4);box-shadow:0 0 0 3px rgba(200,146,42,0.06);}
+  .login-field input::placeholder{color:var(--text3);}
+  .btn-login{width:100%;padding:15px;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#e8a020,#c8880a);color:#000;font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:1.5px;margin-top:18px;transition:.15s;box-shadow:0 4px 20px rgba(232,160,32,0.3);display:block;}
+  .btn-login:hover{opacity:0.88;}
+  .btn-login:disabled{opacity:0.5;cursor:not-allowed;}
+  .login-error{color:var(--red);font-size:11px;font-family:var(--mono);text-align:center;margin-top:10px;display:none;padding:8px;background:var(--red-dim);border:1px solid rgba(220,53,69,0.15);border-radius:6px;}
+
+  /* confirm dialog */
+  .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+  .confirm-overlay.show{display:flex;}
+  .confirm-box{background:var(--card2);border:1px solid var(--border2);border-radius:14px;padding:28px;max-width:340px;width:100%;text-align:center;}
+  .confirm-box h3{font-size:15px;font-weight:700;margin-bottom:8px;}
+  .confirm-box p{font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:20px;line-height:1.6;}
+  .confirm-actions{display:flex;gap:10px;}
+  .confirm-actions .btn{flex:1;}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="top-nav">
+  <div class="nav-brand">
+    <div class="brand-icon">🏦</div>
+    <span class="brand-name">TRADEVAULT</span>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;"><span class="nav-uid" id="adminUidDisplay"></span><button class="btn btn-ghost btn-sm" id="signoutBtn" style="display:none;" onclick="adminSignOut()">SIGN OUT</button></div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginPrompt">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">🏦</div>
+      <h2>TRADEVAULT</h2>
+      <p>ADMIN PANEL</p>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="admin@example.com" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <button class="btn-login" id="loginBtn" onclick="adminLogin()">SIGN IN →</button>
+    <div class="login-error" id="loginError"></div>
+    <div style="text-align:center;margin-top:16px;">
+      <span onclick="showForgot()" style="font-size:11px;color:var(--text3);font-family:var(--mono);cursor:pointer;letter-spacing:0.5px;text-decoration:underline;text-underline-offset:3px;">Forgot password?</span>
+    </div>
+
+    <!-- FORGOT PASSWORD FORM (hidden by default) -->
+    <div id="forgotForm" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text2);font-family:var(--mono);margin-bottom:12px;">RESET PASSWORD</div>
+      <div class="login-field">
+        <label>Email</label>
+        <input type="email" id="resetEmail" placeholder="admin@example.com" onkeydown="if(event.key==='Enter')sendReset()">
+      </div>
+      <button class="btn-login" id="resetBtn" onclick="sendReset()" style="margin-top:10px;background:linear-gradient(135deg,#4a6fa5,#3a5a8a);box-shadow:none;">SEND RESET EMAIL</button>
+      <div class="login-error" id="resetError" style="margin-top:8px;"></div>
+      <div id="resetSuccess" style="display:none;text-align:center;margin-top:10px;font-size:11px;color:var(--green);font-family:var(--mono);padding:8px;background:var(--green-dim);border:1px solid rgba(22,168,112,0.2);border-radius:6px;">
+        ✅ Reset email sent! Check your inbox.
+      </div>
+      <div style="text-align:center;margin-top:12px;">
+        <span onclick="hideForgot()" style="font-size:11px;color:var(--text3);font-family:var(--mono);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">← Back to login</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCESS DENIED (logged in but not admin) -->
+<div id="accessDenied">
+  <div style="font-size:36px;margin-bottom:8px;">⛔</div>
+  <div style="font-size:16px;font-weight:700;">Access Denied</div>
+  <div style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-top:4px;">This panel is restricted to admin accounts only.</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="mainContent">
+<div class="container">
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-box blue-accent">
+      <div class="label">Total Users</div>
+      <div class="value" id="statTotal">—</div>
+    </div>
+    <div class="stat-box gold-accent">
+      <div class="label">Pro Users</div>
+      <div class="value" id="statPro">—</div>
+    </div>
+    <div class="stat-box green-accent">
+      <div class="label">Free Users</div>
+      <div class="value" id="statFree">—</div>
+    </div>
+    <div class="stat-box red-accent">
+      <div class="label">Pending Requests</div>
+      <div class="value" id="statPending">—</div>
+    </div>
+  </div>
+
+  <!-- SEARCH + REQUESTS PANELS -->
+  <div class="panels">
+
+    <!-- SEARCH USER PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">🔍 Find User</span>
+      </div>
+      <div class="panel-body">
+        <div class="search-row">
+          <input class="search-input" id="searchInput" placeholder="Email or UID..." onkeydown="if(event.key==='Enter')searchUser()">
+          <button class="btn btn-gold" onclick="searchUser()">SEARCH</button>
+        </div>
+        <div id="searchResult"></div>
+      </div>
+    </div>
+
+    <!-- PRO REQUESTS PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📥 Pro Requests</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadRequests()">REFRESH</button>
+      </div>
+      <div class="panel-body">
+        <div id="requestsList"><div class="loading"><span class="spinner"></span>LOADING...</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ALL USERS TABLE -->
+  <div class="full-panel">
+    <div class="panel-header">
+      <span class="panel-title">👥 All Users</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="search-input" id="filterInput" placeholder="Filter by email..." oninput="filterUsers()" style="width:180px;padding:7px 12px;font-size:11px;">
+        <button class="btn btn-ghost btn-sm" onclick="loadAllUsers()">REFRESH</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>UID</th>
+            <th>Plan</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <tr><td colspan="6"><div class="loading"><span class="spinner"></span>LOADING...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Confirm Action</h3>
+    <p id="confirmMsg">Are you sure?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">CANCEL</button>
+      <button class="btn btn-gold" id="confirmOkBtn" onclick="confirmOk()">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCanqzINHcJgGt_2s_6RRzPh-1BX6nzbV0",
+  authDomain: "web-app-a36aa.firebaseapp.com",
+  projectId: "web-app-a36aa",
+  storageBucket: "web-app-a36aa.appspot.com",
+  messagingSenderId: "873638679873",
+  appId: "1:873638679873:web:490942c8492e947b09bdc0"
+};
+
+const ADMIN_UID = "irnesr733DgbYD0XgLlQqaVqwXu1";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let allUsersCache = [];
+let confirmCallback = null;
+
+// ── TOAST ──
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display='none', 3000);
+}
+
+// ── CONFIRM ──
+window.closeConfirm = () => document.getElementById('confirmOverlay').classList.remove('show');
+window.confirmOk = () => { closeConfirm(); if(confirmCallback) confirmCallback(); };
+function confirm(title, msg, cb, danger=false) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  const btn = document.getElementById('confirmOkBtn');
+  btn.className = danger ? 'btn btn-revoke' : 'btn btn-gold';
+  btn.textContent = danger ? 'REVOKE' : 'CONFIRM';
+  confirmCallback = cb;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+
+// ── FORMAT DATE ──
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}); }
+  catch { return '—'; }
+}
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    document.getElementById('loginPrompt').classList.add('show');
+    document.getElementById('mainContent').classList.remove('show');
+    document.getElementById('accessDenied').classList.remove('show');
+    document.getElementById('signoutBtn').style.display='none';
+    return;
+  }
+  document.getElementById('loginPrompt').classList.remove('show');
+  if (user.uid !== ADMIN_UID) {
+    document.getElementById('accessDenied').classList.add('show');
+    document.getElementById('adminUidDisplay').textContent = user.email;
+    document.getElementById('signoutBtn').style.display='block';
+    return;
+  }
+  document.getElementById('adminUidDisplay').textContent = user.email;
+  document.getElementById('signoutBtn').style.display='block';
+  document.getElementById('mainContent').classList.add('show');
+  await Promise.all([loadAllUsers(), loadRequests()]);
+});
+
+// ── ADMIN LOGIN ──
+window.adminLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginError');
+  err.style.display='none';
+  if (!email || !pass) { err.textContent='Enter email and password.'; err.style.display='block'; return; }
+  btn.textContent='SIGNING IN...'; btn.disabled=true;
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    const msgs = {
+      'auth/invalid-credential':'Wrong email or password.',
+      'auth/user-not-found':'No account found.',
+      'auth/wrong-password':'Incorrect password.',
+      'auth/too-many-requests':'Too many attempts. Try again later.',
+      'auth/invalid-email':'Invalid email format.'
+    };
+    err.textContent = msgs[e.code] || e.message;
+    err.style.display='block';
+    btn.textContent='SIGN IN →'; btn.disabled=false;
+  }
+};
+
+// ── FORGOT PASSWORD ──
+window.showForgot = function() {
+  document.getElementById('forgotForm').style.display='block';
+  document.getElementById('loginError').style.display='none';
+  const email = document.getElementById('loginEmail').value;
+  if(email) document.getElementById('resetEmail').value = email;
+};
+window.hideForgot = function() {
+  document.getElementById('forgotForm').style.display='none';
+  document.getElementById('resetError').style.display='none';
+  document.getElementById('resetSuccess').style.display='none';
+};
+window.sendReset = async function() {
+  const email = document.getElementById('resetEmail').value.trim();
+  const btn = document.getElementById('resetBtn');
+  const err = document.getElementById('resetError');
+  const ok = document.getElementById('resetSuccess');
+  err.style.display='none'; ok.style.display='none';
+  if(!email){ err.textContent='Enter your email.'; err.style.display='block'; return; }
+  btn.textContent='SENDING...'; btn.disabled=true;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    ok.style.display='block';
+    btn.textContent='SENT ✓';
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found':'No account with that email.',
+      'auth/invalid-email':'Invalid email format.',
+      'auth/too-many-requests':'Too many attempts. Try later.'
+    };
+    err.textContent = msgs[e.code] || e.message;
+    err.style.display='block';
+    btn.textContent='SEND RESET EMAIL'; btn.disabled=false;
+  }
+};
+
+// ── ADMIN SIGN OUT ──
+window.adminSignOut = async function() {
+  await signOut(auth);
+};
+
+// ── LOAD ALL USERS ──
+async function loadAllUsers() {
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    allUsersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderUsersTable(allUsersCache);
+    updateStats();
+  } catch(e) {
+    document.getElementById('usersTableBody').innerHTML = `<tr><td colspan="6"><div class="empty">Failed to load users: ${e.message}</div></td></tr>`;
+  }
+}
+window.loadAllUsers = loadAllUsers;
+
+function updateStats() {
+  const pro = allUsersCache.filter(u => u.isPro).length;
+  document.getElementById('statTotal').textContent = allUsersCache.length;
+  document.getElementById('statPro').textContent = pro;
+  document.getElementById('statFree').textContent = allUsersCache.length - pro;
+}
+
+function renderUsersTable(users) {
+  const tbody = document.getElementById('usersTableBody');
+  if (!users.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty">No users found.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = users.map(u => {
+    const name = u.displayName || u.email?.split('@')[0] || '—';
+    const init = name[0]?.toUpperCase() || '?';
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="user-avatar" style="width:32px;height:32px;font-size:13px;">${init}</div>
+          <span style="font-weight:600;font-size:12px;">${name}</span>
+        </div>
+      </td>
+      <td class="td-email">${u.email || '—'}</td>
+      <td class="td-uid" title="${u.id}">${u.id}</td>
+      <td><span class="plan-pill ${u.isPro?'pro':'free'}">${u.isPro?'⭐ PRO':'FREE'}</span></td>
+      <td class="td-date">${fmtDate(u.createdAt || u.joinedAt)}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          ${u.isPro
+            ? `<button class="btn btn-sm btn-revoke" onclick="revokeProByUid('${u.id}','${u.email||name}')">REVOKE</button>`
+            : `<button class="btn btn-sm btn-pro" onclick="grantProByUid('${u.id}','${u.email||name}')">GRANT PRO</button>`
+          }
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── FILTER USERS ──
+window.filterUsers = function() {
+  const q = document.getElementById('filterInput').value.toLowerCase();
+  const filtered = allUsersCache.filter(u =>
+    (u.email||'').toLowerCase().includes(q) ||
+    (u.displayName||'').toLowerCase().includes(q) ||
+    u.id.toLowerCase().includes(q)
+  );
+  renderUsersTable(filtered);
+};
+
+// ── SEARCH USER ──
+window.searchUser = async function() {
+  const val = document.getElementById('searchInput').value.trim();
+  const res = document.getElementById('searchResult');
+  if (!val) { res.innerHTML=''; return; }
+  res.innerHTML = '<div class="loading"><span class="spinner"></span>SEARCHING...</div>';
+  try {
+    let userData = null;
+    let uid = null;
+
+    // Try direct UID lookup first
+    try {
+      const d = await getDoc(doc(db,'users',val));
+      if (d.exists()) { userData = d.data(); uid = val; }
+    } catch {}
+
+    // Try email search if UID failed
+    if (!userData) {
+      const q2 = query(collection(db,'users'), where('email','==',val), limit(1));
+      const snap = await getDocs(q2);
+      if (!snap.empty) { userData = snap.docs[0].data(); uid = snap.docs[0].id; }
+    }
+
+    if (!userData || !uid) {
+      res.innerHTML = '<div class="empty">No user found. Try full email or exact UID.</div>';
+      return;
+    }
+
+    // Count their trades
+    let tradeCount = 0;
+    try {
+      const tsnap = await getDocs(query(collection(db,'trades'), where('uid','==',uid)));
+      tradeCount = tsnap.size;
+    } catch {}
+
+    const name = userData.displayName || userData.email?.split('@')[0] || 'Unknown';
+    const init = name[0]?.toUpperCase() || '?';
+
+    res.innerHTML = `
+      <div class="user-card">
+        <div class="user-card-top">
+          <div class="user-avatar">${init}</div>
+          <div class="user-info">
+            <div class="user-name">${name}</div>
+            <div class="user-email">${userData.email || '—'}</div>
+            <div class="user-uid">${uid}</div>
+          </div>
+          <span class="plan-pill ${userData.isPro?'pro':'free'}">${userData.isPro?'⭐ PRO':'FREE'}</span>
+        </div>
+        <div class="user-meta">
+          <span>📊 ${tradeCount} trades</span>
+          <span>📅 Joined ${fmtDate(userData.createdAt || userData.joinedAt)}</span>
+          ${userData.isPro && userData.proActivatedAt ? `<span>⭐ Pro since ${fmtDate(userData.proActivatedAt)}</span>` : ''}
+        </div>
+        <div class="user-actions">
+          ${userData.isPro
+            ? `<button class="btn btn-sm btn-revoke" onclick="revokeProByUid('${uid}','${userData.email||name}')">REVOKE PRO</button>`
+            : `<button class="btn btn-sm btn-pro" onclick="grantProByUid('${uid}','${userData.email||name}')">GRANT PRO</button>`
+          }
+        </div>
+      </div>`;
+  } catch(e) {
+    res.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+  }
+};
+
+// ── LOAD PRO REQUESTS ──
+async function loadRequests() {
+  const el = document.getElementById('requestsList');
+  try {
+    const snap = await getDocs(query(collection(db,'proRequests'), orderBy('requestedAt','desc'), limit(30)));
+    const pending = snap.docs.filter(d => d.data().status === 'pending').length;
+    document.getElementById('statPending').textContent = pending;
+
+    if (snap.empty) { el.innerHTML='<div class="empty">No requests yet.</div>'; return; }
+
+    el.innerHTML = snap.docs.map(d => {
+      const r = d.data();
+      return `<div class="req-item">
+        <div class="req-info">
+          <div class="req-email">${r.email || '—'}</div>
+          <div class="req-ref">Ref: ${r.paymentRef || '—'}</div>
+          <div class="req-time">${fmtDate(r.requestedAt)}</div>
+        </div>
+        <span class="status-pill ${r.status||'pending'}">${(r.status||'PENDING').toUpperCase()}</span>
+        ${r.status==='pending' ? `
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <button class="btn btn-sm btn-pro" onclick="approveRequest('${d.id}','${r.uid}','${r.email||''}')">APPROVE</button>
+            <button class="btn btn-sm btn-revoke" onclick="rejectRequest('${d.id}')">REJECT</button>
+          </div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty">Failed: ${e.message}</div>`;
+  }
+}
+window.loadRequests = loadRequests;
+
+// ── GRANT PRO ──
+async function grantPro(uid, email) {
+  try {
+    await setDoc(doc(db,'users',uid), {
+      isPro: true,
+      proActivatedAt: new Date().toISOString(),
+      proActivatedBy: ADMIN_UID
+    }, { merge: true });
+    // Update cache
+    const u = allUsersCache.find(x=>x.id===uid);
+    if (u) u.isPro = true;
+    renderUsersTable(allUsersCache.filter(u2 => {
+      const q = document.getElementById('filterInput').value.toLowerCase();
+      return !q || (u2.email||'').toLowerCase().includes(q) || u2.id.includes(q);
+    }));
+    updateStats();
+    document.getElementById('searchResult').innerHTML && window.searchUser();
+    toast(`✅ Pro granted to ${email}`);
+  } catch(e) {
+    toast(`Failed: ${e.message}`, 'error');
+  }
+}
+
+window.grantProByUid = function(uid, email) {
+  confirm('Grant Pro Access', `Grant Pro plan to ${email}?`, () => grantPro(uid, email));
+};
+
+// ── REVOKE PRO ──
+async function revokePro(uid, email) {
+  try {
+    await setDoc(doc(db,'users',uid), {
+      isPro: false,
+      proRevokedAt: new Date().toISOString(),
+      proRevokedBy: ADMIN_UID
+    }, { merge: true });
+    const u = allUsersCache.find(x=>x.id===uid);
+    if (u) u.isPro = false;
+    renderUsersTable(allUsersCache.filter(u2 => {
+      const q = document.getElementById('filterInput').value.toLowerCase();
+      return !q || (u2.email||'').toLowerCase().includes(q) || u2.id.includes(q);
+    }));
+    updateStats();
+    toast(`Pro revoked from ${email}`, 'error');
+  } catch(e) {
+    toast(`Failed: ${e.message}`, 'error');
+  }
+}
+
+window.revokeProByUid = function(uid, email) {
+  confirm('Revoke Pro Access', `Remove Pro plan from ${email}? They will be downgraded to Free.`, () => revokePro(uid, email), true);
+};
+
+// ── APPROVE REQUEST ──
+window.approveRequest = function(reqId, uid, email) {
+  confirm('Approve Request', `Approve Pro for ${email} and activate their account?`, async () => {
+    try {
+      await grantPro(uid, email);
+      await updateDoc(doc(db,'proRequests',reqId), {
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+        approvedBy: ADMIN_UID
+      });
+      loadRequests();
+      toast(`✅ Approved & Pro activated for ${email}`);
+    } catch(e) { toast(e.message,'error'); }
+  });
+};
+
+// ── REJECT REQUEST ──
+window.rejectRequest = function(reqId) {
+  confirm('Reject Request', 'Mark this request as rejected?', async () => {
+    try {
+      await updateDoc(doc(db,'proRequests',reqId), {
+        status: 'rejected',
+        rejectedAt: new Date().toISOString()
+      });
+      loadRequests();
+      toast('Request rejected');
+    } catch(e) { toast(e.message,'error'); }
+  }, true);
+};
+</script>
+</body>
+</html>
