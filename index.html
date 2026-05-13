@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeVault — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Firebase compat (non-module) — same config as main app -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig={
+  apiKey:"AIzaSyCDFX68CEVSRj_nS69LqShLy8NXy1Yh3DQ",
+  authDomain:"my-pips-funding.firebaseapp.com",
+  databaseURL:"https://my-pips-funding-default-rtdb.firebaseio.com",
+  projectId:"my-pips-funding",
+  storageBucket:"my-pips-funding.firebasestorage.app",
+  messagingSenderId:"91159685703",
+  appId:"1:91159685703:web:2cbf585bc84df53094df62"
+};
+firebase.initializeApp(firebaseConfig);
+const _fbAuth=firebase.auth();
+const _fbDb=firebase.database();
+
+// Admin credentials (hardcoded for simplicity — you can change these)
+const ADMIN_EMAIL = "admin@tradevault.app";
+const ADMIN_PASSWORD = "TradeVault2026!";
+
+window._fbAuth=_fbAuth;
+window._fbDb=_fbDb;
+</script>
+<style>
+:root {
+  --bg:#080A0F; --bg2:#0C0F16; --bg3:#10141D;
+  --card:#0F1420; --card2:#131826; --card3:#171D2E;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.10); --border3:rgba(255,255,255,0.16);
+  --accent:#00E5A0; --accent2:#00C888; --accent-dim:rgba(0,229,160,0.08);
+  --green:#00E5A0; --green-dim:rgba(0,229,160,0.08);
+  --red:#FF4B6E;   --red-dim:rgba(255,75,110,0.08);
+  --blue:#4B8BF5;  --blue-dim:rgba(75,139,245,0.08);
+  --orange:#FF9A3C;--orange-dim:rgba(255,154,60,0.08);
+  --purple:#A855F7;
+  --text:#E8EDF5; --text2:#8896AE; --text3:#4A5568;
+  --font:'Space Grotesk',system-ui,sans-serif;
+  --mono:'Space Mono',monospace;
+  --r:10px; --r2:14px; --r3:20px;
+  --shadow:0 2px 8px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.3);
+  --shadow2:0 4px 20px rgba(0,0,0,.6),0 16px 64px rgba(0,0,0,.4);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden;font-size:14px;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
+
+/* ── AUTH SCREEN ── */
+#authScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(ellipse at 20% 40%,rgba(0,229,160,0.07) 0%,transparent 55%),
+  radial-gradient(ellipse at 80% 20%,rgba(75,139,245,0.04) 0%,transparent 45%),var(--bg);}
+.auth-box{width:100%;max-width:380px;background:var(--card2);border:1px solid var(--border2);border-radius:var(--r3);padding:36px 28px 32px;box-shadow:var(--shadow2);}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-icon{width:52px;height:52px;margin:0 auto 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 20px rgba(0,229,160,.3);}
+.auth-logo h1{font-size:20px;font-weight:700;letter-spacing:-0.5px;}
+.auth-logo h1 span{color:var(--accent);}
+.auth-logo p{font-size:11px;color:var(--text3);font-family:var(--mono);letter-spacing:0.8px;text-transform:uppercase;margin-top:4px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:10px;font-weight:700;letter-spacing:0.8px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;font-family:var(--mono);}
+.form-group input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:.15s;}
+.form-group input:focus{border-color:rgba(0,229,160,.5);box-shadow:0 0 0 3px rgba(0,229,160,.06);}
+.form-group input::placeholder{color:var(--text3);}
+.btn-auth{width:100%;padding:13px;border:none;border-radius:var(--r);cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;font-family:var(--font);font-size:13px;font-weight:700;letter-spacing:.3px;transition:.15s;box-shadow:0 4px 16px rgba(0,229,160,.25);}
+.btn-auth:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,229,160,.35);}
+.auth-error{color:var(--red);font-size:11px;margin-top:10px;text-align:center;font-family:var(--mono);display:none;padding:9px;background:rgba(255,75,110,.06);border:1px solid rgba(255,75,110,.2);border-radius:6px;}
+
+/* ── APP SCREEN ── */
+#appScreen{display:none;flex-direction:column;min-height:100vh;}
+#appScreen.active{display:flex;}
+
+/* ── TOP NAV ── */
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(8,10,15,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.nav-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 14px rgba(0,229,160,.3);}
+.nav-logo-text{font-size:14px;font-weight:700;letter-spacing:-.3px;color:var(--text);}
+.nav-logo-text span{color:var(--accent);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.admin-badge{padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.5px;font-family:var(--mono);background:var(--red-dim);color:var(--red);border:1px solid rgba(255,75,110,.2);}
+.user-pill{display:flex;align-items:center;gap:7px;padding:4px 11px 4px 4px;border-radius:100px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;transition:border-color .15s;}
+.user-pill:hover{border-color:var(--accent);}
+.user-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000;font-family:var(--mono);}
+.user-name{font-size:12px;font-weight:600;color:var(--text);}
+
+/* ── PAGE CONTENT ── */
+.page-wrap{padding-top:56px;}
+.page{max-width:1200px;margin:0 auto;padding:28px 20px 80px;}
+.page-hd{margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.page-hd h1{font-size:24px;font-weight:700;letter-spacing:-.5px;}
+.page-hd p{font-size:12px;color:var(--text2);margin-top:3px;font-family:var(--mono);letter-spacing:.3px;}
+
+/* ── STATS CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:18px;position:relative;overflow:hidden;transition:all .18s;}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r2) var(--r2) 0 0;}
+.stat-card.g::before{background:linear-gradient(90deg,var(--green),transparent);}
+.stat-card.r::before{background:linear-gradient(90deg,var(--red),transparent);}
+.stat-card.b::before{background:linear-gradient(90deg,var(--blue),transparent);}
+.stat-card.p::before{background:linear-gradient(90deg,var(--purple),transparent);}
+.stat-icon{width:34px;height:34px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.stat-icon.g{background:var(--green-dim);} .stat-icon.r{background:var(--red-dim);} .stat-icon.b{background:var(--blue-dim);} .stat-icon.p{background:rgba(168,85,247,.1);}
+.stat-val{font-size:28px;font-weight:700;letter-spacing:-.5px;font-family:var(--mono);margin-bottom:3px;}
+.stat-val.g{color:var(--green);} .stat-val.r{color:var(--red);} .stat-val.b{color:var(--blue);} .stat-val.p{color:var(--purple);}
+.stat-label{font-size:11px;color:var(--text2);font-weight:500;}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.tab-btn{padding:12px 20px;font-size:12px;font-weight:700;font-family:var(--mono);letter-spacing:.3px;color:var(--text2);border:none;background:none;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-1px;position:relative;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--text);}
+.tab-btn .badge{position:absolute;top:6px;right:4px;min-width:16px;height:16px;padding:0 5px;border-radius:8px;background:var(--red);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--mono);}
+
+/* ── TABLE ── */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table thead th{padding:12px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;border-bottom:1px solid var(--border2);background:var(--card2);position:sticky;top:0;z-index:10;}
+.data-table tbody td{padding:14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);vertical-align:top;}
+.data-table tbody tr:hover{background:rgba(255,255,255,.02);}
+.data-table tbody tr.pending-row{background:rgba(255,154,60,.04);}
+.data-table tbody tr.pending-row:hover{background:rgba(255,154,60,.07);}
+.data-table tbody tr.pro-row{background:rgba(0,229,160,.04);}
+.data-table tbody tr.pro-row:hover{background:rgba(0,229,160,.07);}
+
+/* ── USER CELL ── */
+.user-cell{display:flex;align-items:center;gap:10px;}
+.user-cell-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;font-family:var(--mono);flex-shrink:0;}
+.user-cell-info{min-width:0;}
+.user-cell-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+.user-cell-email{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px;}
+.user-cell-uid{font-size:9px;color:var(--text3);font-family:var(--mono);opacity:.6;margin-top:1px;}
+
+/* ── BADGES ── */
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:5px;font-size:10px;font-weight:700;font-family:var(--mono);letter-spacing:.3px;}
+.status-badge.pending{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,154,60,.25);}
+.status-badge.approved{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,229,160,.25);}
+.status-badge.rejected{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,75,110,.25);}
+.status-badge.free{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:none;font-family:var(--font);letter-spacing:.2px;}
+.btn-g{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;box-shadow:0 4px 14px rgba(0,229,160,.2);}
+.btn-g:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,229,160,.3);}
+.btn-ghost{background:var(--card2);border:1px solid var(--border2);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--border3);color:var(--text);}
+.btn-danger{background:var(--red-dim);border:1px solid rgba(255,75,110,.2);color:var(--red);}
+.btn-danger:hover{background:rgba(255,75,110,.15);}
+.btn-orange{background:rgba(255,154,60,.12);border:1px solid rgba(255,154,60,.25);color:var(--orange);}
+.btn-orange:hover{background:rgba(255,154,60,.2);}
+.btn-sm{padding:5px 10px;font-size:10px;}
+
+/* ── ACTION BAR ── */
+.action-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.search-box{flex:1;min-width:200px;max-width:320px;position:relative;}
+.search-box input{width:100%;padding:10px 14px 10px 36px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:12px;outline:none;transition:.15s;}
+.search-box input:focus{border-color:rgba(0,229,160,.4);}
+.search-box::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.5;}
+
+/* ── CARD ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:18px;transition:border-color .15s;margin-bottom:14px;}
+.card:hover{border-color:var(--border2);}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title{font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;font-family:var(--mono);}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);background:var(--card2);border:1px solid var(--border);border-radius:var(--r2);}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+.empty-txt{font-size:13px;color:var(--text2);font-weight:500;}
+.empty-sub{font-size:11px;margin-top:5px;font-family:var(--mono);}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:700;background:var(--card3);border:1px solid var(--border2);color:var(--text);box-shadow:var(--shadow2);transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:8px;font-family:var(--mono);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:rgba(0,229,160,.3);}
+.toast.success::before{content:'✓';color:var(--accent);}
+.toast.error{border-color:rgba(255,75,110,.3);}
+.toast.error::before{content:'✕';color:var(--red);}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--r3);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow2);}
+.modal-title{font-size:16px;font-weight:700;padding:20px 20px 0;letter-spacing:-.3px;}
+.modal-body{padding:16px 20px 24px;}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.modal-actions .btn{flex:1;justify-content:center;padding:12px;}
+
+/* ── DETAIL ROW ── */
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-lbl{color:var(--text3);font-family:var(--mono);}
+.detail-val{color:var(--text);font-weight:600;}
+
+/* ── LOADING ── */
+#loadScreen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+.load-icon{font-size:36px;}
+.load-title{font-size:13px;font-weight:700;letter-spacing:4px;color:var(--accent);font-family:var(--mono);}
+.load-bar-bg{width:200px;height:3px;background:var(--card2);border-radius:2px;overflow:hidden;}
+.load-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--blue));border-radius:2px;transition:width .3s;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr;}.page{padding:16px 14px 80px;}.data-table thead th{padding:8px 10px;font-size:9px;}.data-table tbody td{padding:10px;font-size:11px;}.user-cell-name{max-width:120px;}}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .25s ease forwards;}
+/* ── Security Notice ── */
+.security-notice{background:var(--red-dim);border:1px solid rgba(255,75,110,.2);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;font-size:11px;color:var(--red);font-family:var(--mono);line-height:1.6;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadScreen">
+  <div class="load-icon">🛡️</div>
+  <div class="load-title">ADMIN PANEL</div>
+  <div class="load-bar-bg"><div class="load-bar-fill" id="loadBar" style="width:0%"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ AUTH ══ -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-icon">🛡️</div>
+      <h1>Trade<span>Vault</span> Admin</h1>
+      <p>Pro User Management</p>
+    </div>
+    <div class="security-notice" id="securityNotice" style="display:none;opacity:0;">
+      ⚠️ <strong>SECURITY SETUP REQUIRED:</strong><br>
+      Open this file in a code editor and replace <code>"YOUR_ADMIN_UID_HERE"</code> with your actual Firebase Admin UID in the <code>ALLOWED_ADMIN_UIDS</code> array.<br><br>
+      Find your UID in Firebase Console → Authentication → Users → copy the UID string.
+    </div>
+    <div class="form-group"><label>Admin Email</label><input type="email" id="loginEmail" placeholder="admin@tradevault.app" value="admin@tradevault.app"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleLogin()"></div>
+    <button class="btn-auth" onclick="handleLogin()">ENTER ADMIN →</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="appScreen">
+
+  <!-- TOP NAV -->
+  <nav class="top-nav">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">🛡️</div>
+      <div class="nav-logo-text">Trade<span>Vault</span> <span style="color:var(--red);">Admin</span></div>
+    </div>
+    <div class="nav-right">
+      <div class="admin-badge">ADMIN</div>
+      <div class="user-pill" onclick="handleLogout()">
+        <div class="user-av" id="navAv">A</div>
+        <span class="user-name" id="navName">Admin</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+    <div class="page">
+      <div class="page-hd">
+        <div>
+          <h1>Dashboard</h1>
+          <p>PRO USER MANAGEMENT OVERVIEW</p>
+        </div>
+        <button class="btn btn-g" onclick="refreshData()">🔄 Refresh Data</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card g">
+          <div class="stat-icon g">👑</div>
+          <div class="stat-val g" id="statProUsers">0</div>
+          <div class="stat-label">Pro Users</div>
+        </div>
+        <div class="stat-card o">
+          <div class="stat-icon o">⏳</div>
+          <div class="stat-val o" id="statPending">0</div>
+          <div class="stat-label">Pending Requests</div>
+        </div>
+        <div class="stat-card b">
+          <div class="stat-icon b">👥</div>
+          <div class="stat-val b" id="statTotalUsers">0</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card p">
+          <div class="stat-icon p">💰</div>
+          <div class="stat-val p" id="statRevenue">₦0</div>
+          <div class="stat-label">Est. Revenue</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabPending" onclick="switchTab('pending')">⏳ Pending Requests<span class="badge" id="tabPendingBadge" style="display:none;">0</span></button>
+        <button class="tab-btn" id="tabPro" onclick="switchTab('pro')">👑 Pro Users</button>
+        <button class="tab-btn" id="tabAll" onclick="switchTab('all')">👥 All Users</button>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search by name, email, or UID..." oninput="filterTable()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportData()">📥 Export CSV</button>
+      </div>
+
+      <!-- Content Area -->
+      <div id="contentArea"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ USER DETAIL MODAL ══ -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <div class="modal-title" id="userModalTitle">User Details</div>
+    <div class="modal-body" id="userModalBody"></div>
+    <div class="modal-actions" id="userModalActions"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   TRADEVAULT ADMIN PANEL
+   Manage Pro users, approve requests, view stats
+═══════════════════════════════════════════ */
+
+let currentAdmin = null;
+let allUsers = [];
+let proUsers = [];
+let pendingRequests = [];
+let currentTab = 'pending';
+
+// ────────────────────────────────────────
+// AUTH
+// ────────────────────────────────────────
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+
+  if (!email || !pass) {
+    showAuthError('Enter email and password');
+    return;
+  }
+
+  const btn = document.querySelector('.btn-auth');
+  btn.textContent = 'AUTHENTICATING...';
+  btn.disabled = true;
+
+  try {
+    const result = await _fbAuth.signInWithEmailAndPassword(email, pass);
+    const user = result.user;
+
+    // Explicit UID check right after login
+    if (!isAdminAllowed(user.uid)) {
+      await _fbAuth.signOut();
+      showAuthError('⛔ Access Denied: Your UID (' + user.uid + ') is not authorized for admin access.');
+      btn.textContent = 'ENTER ADMIN →';
+      btn.disabled = false;
+      return;
+    }
+
+    // Success — enter panel
+    enterAdminPanel(user);
+
+  } catch (e) {
+    let msg = e.message;
+    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') {
+      msg = 'Invalid email or password';
+    } else if (e.code === 'auth/too-many-requests') {
+      msg = 'Too many failed attempts. Try again later.';
+    }
+    showAuthError(msg);
+    btn.textContent = 'ENTER ADMIN →';
+    btn.disabled = false;
+  }
+}
+
+async function handleLogout() {
+  try {
+    await _fbAuth.signOut();
+    showAuthScreen();
+  } catch (e) {
+    console.error('Logout error:', e);
+  }
+}
+
+// ── ADMIN UID WHITELIST ──
+const ALLOWED_ADMIN_UIDS = [
+  "irnesr733DgbYD0XgLlQqaVqwXu1",
+];
+
+function isAdminAllowed(uid) {
+  return ALLOWED_ADMIN_UIDS.includes(uid);
+}
+
+// Auth state listener — handles auto-login if already authenticated
+_fbAuth.onAuthStateChanged(user => {
+  if (user) {
+    // Validate UID before showing app
+    if (!isAdminAllowed(user.uid)) {
+      _fbAuth.signOut();
+      showAuthError('⛔ Access Denied: UID ' + user.uid + ' is not authorized.');
+      return;
+    }
+    enterAdminPanel(user);
+  } else {
+    showAuthScreen();
+  }
+});
+
+function enterAdminPanel(user) {
+  currentAdmin = user;
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').classList.add('active');
+  document.getElementById('navAv').textContent = (user.email[0] || 'A').toUpperCase();
+  document.getElementById('navName').textContent = user.email.split('@')[0];
+  loadAllData();
+}
+
+function showAuthScreen() {
+  currentAdmin = null;
+  document.getElementById('appScreen').classList.remove('active');
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
+  const btn = document.querySelector('.btn-auth');
+  if (btn) { btn.textContent = 'ENTER ADMIN →'; btn.disabled = false; }
+}
+
+function showAuthError(msg) {
+  const errEl = document.getElementById('authError');
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  console.error('Admin auth error:', msg);
+}
+
+// ────────────────────────────────────────
+// DATA LOADING
+// ────────────────────────────────────────
+async function loadAllData() {
+  showLoading(true);
+  try {
+    // Load pro_users
+    const proSnap = await _fbDb.ref('pro_users').once('value');
+    proUsers = [];
+    if (proSnap.exists()) {
+      const data = proSnap.val();
+      Object.entries(data).forEach(([uid, val]) => {
+        if (val === true) proUsers.push({ uid, status: 'active', activatedAt: null });
+        else if (typeof val === 'object') proUsers.push({ uid, status: val.status || 'active', activatedAt: val.activatedAt || null, activatedBy: val.activatedBy || null });
+      });
+    }
+
+    // Load pro_requests
+    const reqSnap = await _fbDb.ref('pro_requests').once('value');
+    pendingRequests = [];
+    if (reqSnap.exists()) {
+      const data = reqSnap.val();
+      Object.entries(data).forEach(([id, val]) => {
+        pendingRequests.push({ id, ...val });
+      });
+    }
+
+    // Load leaderboard to get all users
+    const lbSnap = await _fbDb.ref('leaderboard').once('value');
+    allUsers = [];
+    if (lbSnap.exists()) {
+      const data = lbSnap.val();
+      Object.entries(data).forEach(([uid, val]) => {
+        const isPro = proUsers.some(p => p.uid === uid);
+        const proInfo = proUsers.find(p => p.uid === uid);
+        allUsers.push({
+          uid,
+          name: val.name || 'Unknown',
+          email: val.userEmail || val.email || '—',
+          trades: val.trades || 0,
+          winRate: val.winRate || 0,
+          totalPnl: val.totalPnl || 0,
+          updatedAt: val.updatedAt || null,
+          isPro,
+          proStatus: proInfo ? proInfo.status : 'free',
+          proActivatedAt: proInfo ? proInfo.activatedAt : null
+        });
+      });
+    }
+
+    // Also check pending requests for users not in leaderboard
+    pendingRequests.forEach(req => {
+      if (!allUsers.find(u => u.uid === req.uid)) {
+        allUsers.push({
+          uid: req.uid,
+          name: req.name || 'Unknown',
+          email: req.userEmail || req.email || '—',
+          trades: 0,
+          winRate: 0,
+          totalPnl: 0,
+          updatedAt: null,
+          isPro: false,
+          proStatus: 'free'
+        });
+      }
+    });
+
+    updateStats();
+    renderTable();
+    showLoading(false);
+    showToast('Data loaded successfully', 'success');
+  } catch (e) {
+    console.error('Load error:', e);
+    showToast('Error loading data: ' + e.message, 'error');
+    showLoading(false);
+  }
+}
+
+function refreshData() {
+  loadAllData();
+}
+
+function showLoading(show) {
+  const el = document.getElementById('loadScreen');
+  if (show) {
+    el.style.display = 'flex';
+    document.getElementById('loadBar').style.width = '60%';
+  } else {
+    document.getElementById('loadBar').style.width = '100%';
+    setTimeout(() => { el.style.display = 'none'; }, 300);
+  }
+}
+
+// ────────────────────────────────────────
+// STATS
+// ────────────────────────────────────────
+function updateStats() {
+  const proCount = proUsers.filter(p => p.status === 'active').length;
+  const pendingCount = pendingRequests.filter(r => r.status === 'pending').length;
+  const totalCount = allUsers.length;
+  const revenue = proCount * 7000;
+
+  document.getElementById('statProUsers').textContent = proCount;
+  document.getElementById('statPending').textContent = pendingCount;
+  document.getElementById('statTotalUsers').textContent = totalCount;
+  document.getElementById('statRevenue').textContent = '₦' + revenue.toLocaleString();
+
+  // Update badge
+  const badge = document.getElementById('tabPendingBadge');
+  if (pendingCount > 0) {
+    badge.textContent = pendingCount;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ────────────────────────────────────────
+// TABS
+// ────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  document.getElementById('searchInput').value = '';
+  renderTable();
+}
+
+// ────────────────────────────────────────
+// TABLE RENDERING
+// ────────────────────────────────────────
+function renderTable() {
+  const container = document.getElementById('contentArea');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+
+  let data = [];
+  if (currentTab === 'pending') {
+    data = pendingRequests.filter(r => r.status === 'pending');
+  } else if (currentTab === 'pro') {
+    data = allUsers.filter(u => u.isPro);
+  } else {
+    data = allUsers;
+  }
+
+  // Search filter
+  if (search) {
+    data = data.filter(item => {
+      const name = (item.name || '').toLowerCase();
+      const email = (item.email || '').toLowerCase();
+      const uid = (item.uid || '').toLowerCase();
+      return name.includes(search) || email.includes(search) || uid.includes(search);
+    });
+  }
+
+  if (!data.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-txt">No ${currentTab === 'pending' ? 'pending requests' : currentTab === 'pro' ? 'Pro users' : 'users'} found</div>
+        <div class="empty-sub">${search ? 'Try a different search term' : 'Data will appear here'}</div>
+      </div>`;
+    return;
+  }
+
+  if (currentTab === 'pending') {
+    container.innerHTML = renderPendingTable(data);
+  } else {
+    container.innerHTML = renderUsersTable(data);
+  }
+}
+
+function renderPendingTable(requests) {
+  return `
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Payment Ref</th>
+            <th>Amount</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${requests.map(req => `
+            <tr class="pending-row">
+              <td>
+                <div class="user-cell">
+                  <div class="user-cell-av" style="background:var(--orange-dim);color:var(--orange);">${(req.name || '?')[0].toUpperCase()}</div>
+                  <div class="user-cell-info">
+                    <div class="user-cell-name">${req.name || 'Unknown'}</div>
+                    <div class="user-cell-email">${req.email || req.userEmail || '—'}</div>
+                    <div class="user-cell-uid">${req.uid}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-family:var(--mono);font-size:11px;">${req.ref || '—'}</td>
+              <td style="font-weight:700;color:var(--accent);">${req.amount || '₦7,000'}</td>
+              <td style="font-family:var(--mono);font-size:11px;">${formatDate(req.submittedAt)}</td>
+              <td><span class="status-badge pending">⏳ PENDING</span></td>
+              <td style="text-align:right;">
+                <button class="btn btn-g btn-sm" onclick="approveRequest('${req.id}', '${req.uid}')">✅ Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="rejectRequest('${req.id}')">❌ Reject</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderUsersTable(users) {
+  return `
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Trades</th>
+            <th>Win Rate</th>
+            <th>P&L</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users.map(u => `
+            <tr class="${u.isPro ? 'pro-row' : ''}">
+              <td>
+                <div class="user-cell">
+                  <div class="user-cell-av" style="background:${u.isPro ? 'var(--green-dim)' : 'var(--bg3)'};color:${u.isPro ? 'var(--green)' : 'var(--text3)'};">${(u.name || '?')[0].toUpperCase()}</div>
+                  <div class="user-cell-info">
+                    <div class="user-cell-name">${u.name || 'Unknown'}</div>
+                    <div class="user-cell-email">${u.email || '—'}</div>
+                    <div class="user-cell-uid">${u.uid}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-family:var(--mono);font-weight:700;">${u.trades}</td>
+              <td style="font-family:var(--mono);">${u.winRate}%</td>
+              <td style="font-family:var(--mono);color:${u.totalPnl >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700;">${u.totalPnl >= 0 ? '+' : ''}$${u.totalPnl.toFixed(2)}</td>
+              <td>${u.isPro 
+                ? `<span class="status-badge approved">👑 PRO</span>` 
+                : `<span class="status-badge free">FREE</span>`}</td>
+              <td style="text-align:right;">
+                ${u.isPro 
+                  ? `<button class="btn btn-danger btn-sm" onclick="revokePro('${u.uid}')">🗑 Revoke</button>` 
+                  : `<button class="btn btn-g btn-sm" onclick="grantPro('${u.uid}')">👑 Grant Pro</button>`}
+                <button class="btn btn-ghost btn-sm" onclick="viewUserDetails('${u.uid}')">👁 View</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function filterTable() {
+  renderTable();
+}
+
+// ────────────────────────────────────────
+// ACTIONS
+// ────────────────────────────────────────
+async function approveRequest(requestId, uid) {
+  if (!confirm('Approve this Pro request? The user will be granted Pro access immediately.')) return;
+
+  try {
+    // Update request status
+    await _fbDb.ref('pro_requests/' + requestId).update({
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
+      approvedBy: currentAdmin.uid
+    });
+
+    // Grant Pro access
+    await _fbDb.ref('pro_users/' + uid).set({
+      status: 'active',
+      activatedAt: new Date().toISOString(),
+      activatedBy: currentAdmin.uid,
+      source: 'manual_approval'
+    });
+
+    showToast('✅ Pro access granted!', 'success');
+    await loadAllData();
+  } catch (e) {
+    console.error('Approve error:', e);
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function rejectRequest(requestId) {
+  if (!confirm('Reject this Pro request?')) return;
+
+  try {
+    await _fbDb.ref('pro_requests/' + requestId).update({
+      status: 'rejected',
+      rejectedAt: new Date().toISOString(),
+      rejectedBy: currentAdmin.uid
+    });
+
+    showToast('❌ Request rejected', 'success');
+    await loadAllData();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function grantPro(uid) {
+  if (!confirm('Grant Pro access to this user?')) return;
+
+  try {
+    await _fbDb.ref('pro_users/' + uid).set({
+      status: 'active',
+      activatedAt: new Date().toISOString(),
+      activatedBy: currentAdmin.uid,
+      source: 'manual_grant'
+    });
+
+    showToast('👑 Pro access granted!', 'success');
+    await loadAllData();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function revokePro(uid) {
+  if (!confirm('⚠️ Revoke Pro access from this user? They will lose all Pro features immediately.')) return;
+
+  try {
+    await _fbDb.ref('pro_users/' + uid).remove();
+
+    showToast('🗑 Pro access revoked', 'success');
+    await loadAllData();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ────────────────────────────────────────
+// USER DETAILS MODAL
+// ────────────────────────────────────────
+async function viewUserDetails(uid) {
+  const user = allUsers.find(u => u.uid === uid);
+  if (!user) return;
+
+  // Load user's trades from Firebase
+  let trades = [];
+  let settings = {};
+  try {
+    const tradesSnap = await _fbDb.ref('users/' + uid + '/trades').once('value');
+    if (tradesSnap.exists()) {
+      const tradesData = JSON.parse(tradesSnap.val());
+      trades = Array.isArray(tradesData) ? tradesData : [];
+    }
+
+    const settingsSnap = await _fbDb.ref('users/' + uid + '/settings').once('value');
+    if (settingsSnap.exists()) {
+      settings = JSON.parse(settingsSnap.val());
+    }
+  } catch (e) {
+    console.warn('Could not load user details:', e);
+  }
+
+  const wins = trades.filter(t => t.outcome === 'win').length;
+  const losses = trades.filter(t => t.outcome === 'loss').length;
+  const bes = trades.filter(t => t.outcome === 'be').length;
+  const pending = trades.filter(t => t.isPending).length;
+  const totalPnl = trades.reduce((s, t) => s + parseFloat(t.pnl || 0), 0);
+
+  document.getElementById('userModalTitle').textContent = '👤 ' + (user.name || 'User Details');
+  document.getElementById('userModalBody').innerHTML = `
+    <div class="detail-row"><span class="detail-lbl">UID</span><span class="detail-val" style="font-family:var(--mono);font-size:11px;">${user.uid}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Email</span><span class="detail-val">${user.email || '—'}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Name</span><span class="detail-val">${user.name || '—'}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Pro Status</span><span class="detail-val" style="color:${user.isPro ? 'var(--green)' : 'var(--text3)'};font-weight:700;">${user.isPro ? '👑 PRO' : 'FREE'}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Total Trades</span><span class="detail-val">${trades.length}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Wins / Losses / BE</span><span class="detail-val">${wins} / ${losses} / ${bes}${pending ? ' (' + pending + ' pending)' : ''}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Win Rate</span><span class="detail-val">${trades.length ? Math.round((wins / trades.length) * 100) : 0}%</span></div>
+    <div class="detail-row"><span class="detail-lbl">Total P&L</span><span class="detail-val" style="color:${totalPnl >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700;">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Account Balance</span><span class="detail-val">$${(settings.balance || 10000).toLocaleString()}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Default Session</span><span class="detail-val">${settings.session || 'London'}</span></div>
+    <div class="detail-row"><span class="detail-lbl">Last Active</span><span class="detail-val">${user.updatedAt ? formatDate(user.updatedAt) : '—'}</span></div>
+    ${user.proActivatedAt ? `<div class="detail-row"><span class="detail-lbl">Pro Activated</span><span class="detail-val">${formatDate(user.proActivatedAt)}</span></div>` : ''}
+  `;
+
+  document.getElementById('userModalActions').innerHTML = `
+    ${user.isPro 
+      ? `<button class="btn btn-danger" onclick="closeUserModal();revokePro('${user.uid}');">🗑 Revoke Pro</button>` 
+      : `<button class="btn btn-g" onclick="closeUserModal();grantPro('${user.uid}');">👑 Grant Pro</button>`}
+    <button class="btn btn-ghost" onclick="closeUserModal()">Close</button>
+  `;
+
+  document.getElementById('userModal').classList.add('open');
+}
+
+function closeUserModal() {
+  document.getElementById('userModal').classList.remove('open');
+}
+
+// ────────────────────────────────────────
+// EXPORT
+// ────────────────────────────────────────
+function exportData() {
+  let data = [];
+  let filename = '';
+
+  if (currentTab === 'pending') {
+    data = pendingRequests.filter(r => r.status === 'pending');
+    filename = 'pending_requests.csv';
+  } else if (currentTab === 'pro') {
+    data = allUsers.filter(u => u.isPro);
+    filename = 'pro_users.csv';
+  } else {
+    data = allUsers;
+    filename = 'all_users.csv';
+  }
+
+  if (!data.length) {
+    showToast('No data to export', 'error');
+    return;
+  }
+
+  let csv = '';
+  if (currentTab === 'pending') {
+    csv = 'Name,Email,UID,Payment Ref,Amount,Submitted At,Status\n';
+    csv += data.map(r => `"${r.name || ''}","${r.email || r.userEmail || ''}","${r.uid}","${r.ref || ''}","${r.amount || '₦7,000'}","${r.submittedAt || ''}","${r.status}"`).join('\n');
+  } else {
+    csv = 'Name,Email,UID,Trades,Win Rate,Total PnL,Pro Status,Activated At\n';
+    csv += data.map(u => `"${u.name || ''}","${u.email || ''}","${u.uid}",${u.trades},${u.winRate}%,"$${u.totalPnl.toFixed(2)}","${u.isPro ? 'PRO' : 'FREE'}","${u.proActivatedAt || ''}"`).join('\n');
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showToast('📥 CSV exported!', 'success');
+}
+
+// ────────────────────────────────────────
+// UTILS
+// ────────────────────────────────────────
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 2600);
+}
+
+// Modal close handlers
+document.getElementById('userModal').addEventListener('click', function(e) {
+  if (e.target === this) closeUserModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeUserModal();
+});
+
+// Boot
+(function boot() {
+  const bar = document.getElementById('loadBar');
+  setTimeout(() => { if (bar) bar.style.width = '40%'; }, 100);
+  setTimeout(() => { if (bar) bar.style.width = '80%'; }, 400);
+  setTimeout(() => {
+    if (bar) bar.style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('loadScreen').style.display = 'none';
+    }, 200);
+  }, 700);
+})();
+</script>
+</body>
+</html>
